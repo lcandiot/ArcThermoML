@@ -25,8 +25,8 @@ They are *not* intended as a general-purpose software package or to be actively 
 
 ### Clone the repository
 ```
-git clone https://github.com/<yourname>/ArcThermoML.git
-cd arc-thermo-ml-scripts
+git clone https://github.com/lcandiot/ArcThermoML.git
+cd ArcThermoML
 ```
 
 ### Recreate the environment
@@ -35,6 +35,3 @@ julia --project -e "using Pkg; Pkg.instantiate()"
 ```
 
 ### Run example script (reproduces a key figure)
-```
-julia --project scripts/reproduce_Fig3.jl
-```
