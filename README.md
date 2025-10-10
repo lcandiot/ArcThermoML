@@ -10,3 +10,31 @@ They are *not* intended as a general-purpose software package or to be actively 
 ---
 
 ## 📦 Contents
+
+---
+
+## ⚙️ Requirements
+
+- Julia **v1.10** or newer  
+- Packages will be installed automatically from `Project.toml`  
+- Operating system: Linux, macOS, or Windows
+
+---
+
+## ▶️ Quick start
+
+### Clone the repository
+```
+git clone https://github.com/<yourname>/arc-thermo-ml-scripts.git
+cd arc-thermo-ml-scripts
+```
+
+### Recreate the environment
+```
+julia --project -e "using Pkg; Pkg.instantiate()"
+```
+
+### Run example script (reproduces a key figure)
+```
+julia --project scripts/reproduce_Fig3.jl
+```
