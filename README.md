@@ -36,9 +36,11 @@ subdirectories.
 ## ▶️ Quick start
 
 ### Clone the repository
+Clone the repository and create your own user directory
 ```
 git clone https://github.com/lcandiot/ArcThermoML.git
 cd ArcThermoML
+mkdir user
 ```
 
 ### Recreate the environment
@@ -47,8 +49,4 @@ julia --project -e "using Pkg; Pkg.instantiate()"
 ```
 
 ### Run example script
-First, create a directory at the top level of this repository via
-```
-mkdir user
-```
-Next run 
+
