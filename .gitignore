@@ -1,5 +1,4 @@
 Manifest.toml
-/data/surrogate_model/TrainedModel_256HD_3HL_16384batchsize_1000epochs_full.jld2
 /user/*
 
 # For the first round, we do not add visualization routines
@@ -8,3 +7,8 @@ Manifest.toml
 /scripts/viz_functionality.jl
 /scripts/evaluate_crossValidation.jl
 /scripts/evaluate_Network_accuracy.jl
+/figures/*
+
+# Exlude massive data files
+/data/surrogate_model/TrainedModel_256HD_3HL_16384batchsize_1000epochs_full.jld2
+/data/surrogate_model/SynGEOROC*
