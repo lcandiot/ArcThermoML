@@ -1,4 +1,4 @@
-Manifest.toml
+# User directory
 /user/*
 
 # For the first round, we do not add visualization routines
