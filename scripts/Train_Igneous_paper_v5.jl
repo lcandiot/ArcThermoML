@@ -982,21 +982,22 @@ function infer_igneous_properties(
     input[1, :] .= Float32.(T)
     input[2, :] .= Float32.(P)
     for (idx_ox, oxide) in enumerate(Noxides)
-        idx = findfirst(x -> x == oxide, Xoxides)
+        idx = findfirst(x -> x == oxide, oxides)
         input[2+idx_ox, :] .= Float32.(X[idx, :])
     end
-    sum_X = sum(input[3,10, :], dims = 1)
+    sum_X = sum(input[3:10, :], dims = 1)
     input[3:10, :] ./= sum_X
     input[[2, 5, 6, 8, 9], :] .= log.(input[[2, 5, 6, 8, 9], :] .+ Float32(1e-5))
-    input_sc = MAGEMin_MLPs.TransformData(in_test, transform = :zscore, dims = 2, scale = true, mean_data = ig_NN.in_mean, std_data = ig_NN.in_std)
+    input_sc = MAGEMin_MLPs.TransformData(input, transform = :zscore, dims = 2, scale = true, mean_data = ig_NN.in_mean, std_data = ig_NN.in_std)
     
     # Infer properties
     states_t = Lux.testmode(ig_NN.model.st)
-    (p̂1, p̂2, ŷ1, ŷ2, ŷ3, ŷ4, ŷ5, ŷ6)  = Lux.apply(ig.NN.model.u, input_sc, ig_NN.model.ps, states_t)[1]
+    (p̂1, p̂2, ŷ1, ŷ2, ŷ3, ŷ4, ŷ5, ŷ6)  = Lux.apply(ig_NN.model.model.u, input_sc, ig_NN.model.ps, states_t)[1]
     ŷ_sc = vcat(p̂1, vcat(p̂2, vcat(ŷ1, vcat(ŷ2, vcat(ŷ3, vcat(ŷ4, vcat(ŷ5, ŷ6)))))))
-    ŷ  = MAGEMin_MLPs.TransformDataBack(ŷ_sc; transform = :zscore, dims=2, mean_data = ig_NN.in_mean, std_data = ig_NN.in_std)
-    ŷ[[5, 7, 8, 9], :] .= exp.(ŷ[[5, 7, 8, 9], :]) .- DatType(1e-5)
+    ŷ  = MAGEMin_MLPs.TransformDataBack(ŷ_sc; transform = :zscore, dims=2, mean_data = ig_NN.out_mean, std_data = ig_NN.out_std)
+    ŷ[[5, 7, 8, 9], :] .= exp.(ŷ[[5, 7, 8, 9], :]) .- Float32(1e-5)
     ŷ[3:10]     ./= sum(ŷ[3:10])
+
 
     # Generate fluid mask
     liquid_mask = ŷ[1, :] .>= 0.5
@@ -1008,46 +1009,19 @@ function infer_igneous_properties(
     ŷ[13, :] .*= fluid_mask
     ŷ[14, :] .*= liquid_mask
     ŷ[15, :] .*= fluid_mask
-
+    ŷ = abs.(ŷ)
+    
     # Correct points that are close to the aggregate transitions
     thres = 5e-2
     ph_mob      = vec(sum(ŷ[[12, 13], :], dims = 1))
-    ph_mob_true = vec(sum(y_test[[12, 13], :], dims = 1))
     idx_solid   = findall(x -> x < 1e-3,       ph_mob)
     idx_molten  = findall(x -> x > 1.0 - thres, ph_mob)
     ŷ[[12, 13, 14, 15], idx_solid       ] .= 0.0
-    y_test[[12, 13, 14, 15], idx_solid_true       ] .= 0.0
     idx_dens_melt = ŷ[14, :] .> ŷ[11, :]
     ŷ[14, idx_dens_melt] .= ŷ[11, idx_dens_melt]
-    idx_dens_melt = y_test[14, :] .> y_test[11, :]
-    y_test[14, idx_dens_melt] .= y_test[11, idx_dens_melt]
-    ρ_sol_pred = (ŷ[11, :] .- ŷ[12, :] .* ŷ[14, :] .- ŷ[13, :] .* ŷ[15, :]) ./ (1.0 .- ŷ[12, :] .- ŷ[13, :])
-    ρ_sol_pred[idx_molten] .= 0.0
-
-    ρ_sol_true = (y_test[11, :] .- y_test[12, :] .* y_test[14, :] .- y_test[13, :] .* y_test[15, :]) ./ (1.0 .- y_test[12, :] .- y_test[13, :])
-    ρ_sol_true[idx_molten_true] .= 0.0
-
-    idx = findall(x -> x < 0.0, ρ_sol_true)
-    display(y_test[:, idx])
-    display(x_test[:, idx])
-    display(minimum(ρ_sol_true))
-    display(maximum(ρ_sol_true))
-    display(minimum(ρ_sol_pred))
-    display(maximum(ρ_sol_pred))
-
-    # Calculate viscosity from Giordano et al. 2008 assuming a Na2O/K2O split factor
-    visc_N = Vector{Float64}(undef, size(ŷ, 2))
-    visc_M = Vector{Float64}(undef, size(ŷ, 2))
-    for idx in axes(ŷ, 2)
-        wt_vec_N = [ŷ[i, idx] for i in 3:10]
-        wt_vec_M = [y_test[i, idx] for i in 3:10]
-        T = x_test[1, idx]
-        out_η_N = viscosity_GRD08_reduced(wt_vec_N; temp_C=T, alpha_Na=0.5, do_plot=false)
-        out_η_M = viscosity_GRD08_reduced(wt_vec_M; temp_C=T, alpha_Na=0.5, do_plot=false)
-        visc_N[idx] = out_η_N.viscosity_Pa_s
-        visc_M[idx] = out_η_M.viscosity_Pa_s
-    end
+    ρ_sol = (ŷ[11, :] .- ŷ[12, :] .* ŷ[14, :] .- ŷ[13, :] .* ŷ[15, :]) ./ (1.0 .- ŷ[12, :] .- ŷ[13, :])
+    ρ_sol[idx_molten] .= 0.0
 
     # Return
-    return nothing
+    return (X_liq = Float64.(ŷ[3:10, :]), ρ_sys = Float64.(ŷ[11, :]), ϕ_liq = Float64.(ŷ[12, :]), ϕ_flu = Float64.(ŷ[13, :]), ρ_liq = Float64.(ŷ[14, :]), ρ_flu = Float64.(ŷ[15, :]))
 end

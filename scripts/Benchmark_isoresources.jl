@@ -2,6 +2,7 @@ using JLD2
 using Lux, Statistics, Random
 using MAGEMin_C
 using CairoMakie, Base, BenchmarkTools, Printf, Distributions, LinearAlgebra, DataFramesMeta
+include("MAGEMin_MLPs.jl")
 using .MAGEMin_MLPs
 
 # Type definitions

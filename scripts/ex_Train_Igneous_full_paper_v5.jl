@@ -4,6 +4,7 @@ using MAGEMin_C
 using Lux, Random, Zygote, Optimisers, MLUtils, LuxCUDA
 using KernelDensity, Statistics, Distributions
 using Printf, CairoMakie, ColorSchemes
+include("MAGEMin_MLPs.jl")
 using .MAGEMin_MLPs
 
 CUDA.allowscalar(false)
