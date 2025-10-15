@@ -1,5 +1,5 @@
 # Inferring arc magma properties with the neural network
-using Lux, LuxCUDA
+using Lux, LuxCUDA, JLD2
 include("MAGEMin_MLPs.jl")
 using .MAGEMin_MLPs
 
@@ -23,11 +23,9 @@ function main_func()
     # Infer properties
     arc_props = MAGEMin_MLPs.infer_igneous_properties(ig_NN, T, P, X, oxides)
 
-    println(arc_props)
-
     # Return result
     return arc_props
 end
 
 # Run main
-main_func();
+arc_props = main_func()

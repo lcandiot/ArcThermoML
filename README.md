@@ -49,4 +49,11 @@ julia --project -e "using Pkg; Pkg.instantiate()"
 ```
 
 ### Run example script
-
+You can infer thermodynamic quantities of arc magmas by running
+```
+include("./scripts/ex_infer_props.jl")
+```
+As a result you should see the following ouptut printed in the Julia REPL
+```
+(X_liq = [0.5592579245567322; 0.1716310977935791; … ; 0.00857582502067089; 0.09265629202127457;;], ρ_sys = [2658.150390625], ϕ_liq = [0.4125232696533203], ϕ_flu = [0.0], ρ_liq = [2145.30615234375], ρ_flu = [0.0])
+```
