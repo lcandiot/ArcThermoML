@@ -44,8 +44,13 @@ mkdir user
 ```
 
 ### Recreate the environment
+Launch the julia REPL inside and recreate the environment for this project project
 ```
-julia --project -e "using Pkg; Pkg.instantiate()"
+julia --project=./
+```
+```
+using Pkg
+Pkg.instantiate()
 ```
 
 ### Run example script
