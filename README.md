@@ -62,3 +62,18 @@ As a result you should see the following ouptut printed in the Julia REPL
 ```
 (X_liq = [0.5592579245567322; 0.1716310977935791; … ; 0.00857582502067089; 0.09265629202127457;;], ρ_sys = [2658.150390625], ϕ_liq = [0.4125232696533203], ϕ_flu = [0.0], ρ_liq = [2145.30615234375], ρ_flu = [0.0])
 ```
+
+## 📊 Reproducing the main article figures
+
+First download the required data from the Zenodo repository and store them somewhere (in the `./user` directory for example). The files to reproduce the figures are
+```
+./scripts/
+    evaluate_crossValidation.jl
+    evaluate_MAGEMin_Experiments.jl
+    evaluate_Network_accuracy.jl
+```
+Simply adjust the path variable pointing to the location of the data and execute one of the scripts in the Julia REPL like
+```
+include("./scripts/evaluate_crossValidation.jl")
+```
+This will print the figure to screen and save a png in the `./user/figures` subdirectory.

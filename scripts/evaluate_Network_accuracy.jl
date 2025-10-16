@@ -1,6 +1,7 @@
-# Original file name in my system: ex_evaluate_results_v6.jl
+# Original file name in my system: MAGEMin_MLPs/src/ex_evaluate_results_v6.jl
+# To run this script and to create the figures, you need to download the data from Zenodo
 using JLD2
-using Lux, Statistics, Impute, ROC, Random
+using Lux, Statistics, Random
 using MAGEMin_C
 using CairoMakie, Base, Printf
 include("MAGEMin_MLPs.jl")
@@ -22,8 +23,7 @@ const DatType = Float64
     Random.seed!(rng, seed)
 
     # Set data path
-    data_dir = "/media/largeData/ArcMagma_NeuralNetworks/MLP/NeuralNetworks/CrossValidation_062025"
-    # mname = "Syn_GEOROC_v2_pruned_freq_2_withFreeH2O_AMR_4wtH2O_notgridded_6iniLev_2sub_lev_45.0_71.0wtSi_650.0_1100.0C_0.01_10.0kbar_indivOptmisers_hardMask_betterFrac_logTransform_8192batchsize_2000epochs_randsplit_loginput_crossvalMLP.jld2"
+    data_dir = "./user/zenodo_data" # <-- Path to Zenodo data
     mname = "TrainedModel_256HD_3HL_16384batchsize_1000epochs_full.jld2"
 
     # Switches
@@ -33,48 +33,13 @@ const DatType = Float64
 
     # Load data and extract info
     info = JLD2.load("$(data_dir)/$mname", "/Info")
-    # tra_loss_all = Matrix{Float32}(undef, info["nFolds"], 101)
-    # val_loss_all = Matrix{Float32}(undef, info["nFolds"], 101)
-
-    # Loop over folds
-    # for k in 1:info["nFolds"]
-    #     tra_loss = JLD2.load("$(data_dir)/$mname", "Fold_$k/Stats/train_losses")
-    #     val_loss = JLD2.load("$(data_dir)/$mname", "Fold_$k/Stats/val_losses")
-    #     precis = JLD2.load("$(data_dir)/$mname", "Fold_$k/Stats/precision")
-    #     recall = JLD2.load("$(data_dir)/$mname", "Fold_$k/Stats/precision")
-    #     tra_loss_all[k, 1:size(tra_loss, 1)] .= tra_loss
-    #     val_loss_all[k, 1:size(val_loss, 1)] .= val_loss
-    # end
 
     # Unpack the model and test data
-    # ig_NN = MAGEMin_MLPs.load_igneous_model("$(data_dir)/$(mname)")
-    # mname = "HyperParameterStudy_256HD_3HL_16384batchsize_500epochs_crossvalMLP.jld2"
     model = JLD2.load("$data_dir/$mname", "MLP/model")
-    # x_mean_train  = JLD2.load("$data_dir/$mname", "Fold_1/Scaling/mean_input_train")
-    # x_std_train   = JLD2.load("$data_dir/$mname", "Fold_1/Scaling/std_input_train")
-    # y_mean_train = JLD2.load("$data_dir/$mname", "Fold_1/Scaling/mean_output_train")
-    # y_std_train  = JLD2.load("$data_dir/$mname", "Fold_1/Scaling/std_output_train")
-    # model = ig_NN.model
-    # x_mean_train = ig_NN.in_mean
-    # x_std_train = ig_NN.in_std
-    # y_mean_train = ig_NN.out_mean
-    # y_std_train = ig_NN.out_std
-    # model = JLD2.load("$(data_dir)/$(mname)", "/MLP/model")
     x_mean_train = JLD2.load("$(data_dir)/$(mname)", "/Scaling/mean_input")
     x_std_train = JLD2.load("$(data_dir)/$(mname)", "/Scaling/std_input")
     y_mean_train = JLD2.load("$(data_dir)/$(mname)", "/Scaling/mean_output")
     y_std_train = JLD2.load("$(data_dir)/$(mname)", "/Scaling/std_output")
-    # model = JLD2.load("$(data_dir)/$(mname)", "/Fold_2/MLP/model")
-    # x_mean_train = JLD2.load("$(data_dir)/$(mname)", "/Fold_2/Scaling/mean_input_train")
-    # x_std_train = JLD2.load("$(data_dir)/$(mname)", "/Fold_2/Scaling/std_input_train")
-    # y_mean_train = JLD2.load("$(data_dir)/$(mname)", "/Fold_2/Scaling/mean_output_train")
-    # y_std_train = JLD2.load("$(data_dir)/$(mname)", "/Fold_2/Scaling/std_output_train")
-    
-    # Find threshold with maximum J score
-    # best_threshold_index = argmax(J_scores)
-    # best_threshold = roc_curve.thresholds[best_threshold_index]
-
-    # println("Optimal threshold: ", best_threshold)
 
     # Make a prediction for data the network really has never seen before
     dataBase      = "ig"
@@ -98,7 +63,6 @@ const DatType = Float64
     ŷ_sc = vcat(p̂1, vcat(p̂2, vcat(ŷ1, vcat(ŷ2, vcat(ŷ3, vcat(ŷ4, vcat(ŷ5, ŷ6)))))))
     ŷ  = MAGEMin_MLPs.TransformDataBack(ŷ_sc; transform = :zscore, dims=2, mean_data = y_mean_train, std_data = y_std_train)
     if log_transform
-        # ŷ[[7, 8, 9, 10, 13], :] .= exp.(ŷ[[7, 8, 9, 10, 13], :]) .- DatType(ϵ_log)
         ŷ[[5, 7, 8, 9], :] .= exp.(ŷ[[5, 7, 8, 9], :]) .- DatType(ϵ_log)
     end
     ŷ[3:10]     ./= sum(ŷ[3:10])
@@ -123,11 +87,11 @@ const DatType = Float64
     display(abs.(y .- ŷ) ./ max.(y, ŷ) .* 100.0)
 
     # Load test data input and output data
-    x_test_orig, y_test_orig = MAGEMin_MLPs.LoadData(data_path = "/media/largeData/ArcMagma_NeuralNetworks/MLP/NeuralNetworks/CrossValidation_062025/data/SynGEOROC_testing_data_5iniLev_2sub_lev_45.0_71.0wtSi_652.0_1298.0C_0.12_9.98kbar.jld2")
+    x_test_orig, y_test_orig = MAGEMin_MLPs.LoadData(data_path = "$data_dir/SynGEOROC_testing_data_5iniLev_2sub_lev_45.0_71.0wtSi_652.0_1298.0C_0.12_9.98kbar.jld2")
 
     y_test_ord = deepcopy(y_test_orig)
 
-    # Reorder stuff
+    # Reorder stuff - same reordering as training data (see ex_Train_Igneous_crossval_paper_v5.jl line 256)
     y_test_ord[[5, 6, 7, 8, 11, 12, 13, 14],    :] .= y_test_orig[[5, 8, 6, 7, 13, 11, 12, 14],   :]
 
     # Randomly pic a couple of test points
@@ -149,58 +113,8 @@ const DatType = Float64
         x_test[[2, 5, 6, 8, 9], :] .= log.(x_test[[2, 5, 6, 8, 9], :] .+ DatType(ϵ_log))
     end
 
-    # # ------------------- #
-    # # Speed test
-    # # ------------------- #
-    # res = [1, 100, 1_000, 100_000, 1_000_000]
-    # time_NN   = [0.0 for _ in eachindex(res)]
-    # time_MAGE = [0.0 for _ in eachindex(res)]
-
-    # # Initialize MAGEMin
-    # dataBase = "ig"
-    # Xoxides  = ["SiO2"; "Al2O3"; "CaO"; "MgO"; "FeO"; "O"; "K2O"; "Na2O"; "TiO2"; "Cr2O3"; "H2O"]
-    # RC158c   = [ 52.1,   18.3, 10.5, 5.55,  7.24,  0.0,  0.38,   2.6,   0.68,    0.0,   4.0]
-    # RC158c ./= sum(RC158c)
-    # sys_in   = "wt"
-    # data     = Initialize_MAGEMin(dataBase, verbose = -1);
-    # ph_rm    = remove_phases(["fl"], "ig")
-
-    # # Prepare data and make a prediction
+    # Prepare data and make a prediction
     x_test_sc = MAGEMin_MLPs.TransformData(x_test, transform = :zscore, dims = 2, scale = true, mean_data = x_mean_train, std_data = x_std_train; DatType = DatType)
-    # for (idx_res, Res) in enumerate(res)
-        
-    #     # Network speed
-    #     x = Matrix{Float32}(undef, size(x_test_sc, 1), Res)
-    #     x[1:end, :] .= Float32.(x_test_sc[:, 1])
-    #     states_t = Lux.testmode(model.st)
-    #     tic_NN = Base.time()
-    #     (p̂1, ŷ1, ŷ2, ŷ3, ŷ4, ŷ5) = Lux.apply(model.model.u, Float32.(x), model.ps, states_t)[1]
-    #     @show time_NN[idx_res] = Base.time() - tic_NN
-
-    #     # MAGEMin Speed
-    #     X = [RC158c for _ in 1:Res]
-    #     T = [800.0 for _ in 1:Res]
-    #     P = [5.0 for _ in 1:Res]
-    #     # display(X)
-    #     tic_MAGE = Base.time()
-    #     Out_PT   = multi_point_minimization(T, P, data, X = X, Xoxides = Xoxides, sys_in = sys_in, rm_list = ph_rm)
-    #     @show time_MAGE[idx_res] = Base.time() - tic_MAGE
-    # end
-    # Finalize_MAGEMin(data)
-
-    # # Visualize results
-    # f = Figure(size = (1000, 1000), figure_padding = 50)
-    # ax = Axis(f[1,1], yscale = log10, yminorticksvisible = true, yminorgridvisible = true, yminorticks = IntervalsBetween(5), xscale = log10, xminorticksvisible = true, xminorgridvisible = true, xminorticks = IntervalsBetween(5), xticks = ([1, 1000, 1000000], ["1", "1000", "1000000"]), xlabel = L"$$No. points [ ]", ylabel = L"$$Time [s]", limits = (1, res[end], min(minimum(time_NN), minimum(time_MAGE)), max(maximum(time_NN), maximum(time_MAGE))), aspect = 1.618)
-    # l1 = lines!(ax, res, time_NN, color = :skyblue4, label = L"$$Network", linewidth = 3)
-    # s1 = scatter!(ax, res, time_NN, color = :skyblue4, markersize = 20)
-    # l2 = lines!(ax, res, time_MAGE, color = :goldenrod4, label = L"$$MAGEMin (32 threads)", linewidth = 3)
-    # s2 = scatter!(ax, res, time_MAGE, color = :goldenrod4, markersize = 20, marker = :rect)
-    # axislegend(ax,[[l1,s1], [l2, s2]], ["Network", "MAGEMin 32 Threads"], position = :rb, backgroundcolor = (:white, 0.0))
-    # display(f)
-    # save("/media/largeData/ArcMagma_NeuralNetworks/MLP/NeuralNetworks/CrossValidation_10042025/png/speedtest.png", f, px_per_unit = 8)
-    # return
-    # # ---------------------------------------
-
     states_t = Lux.testmode(model.st)
     tic = Base.time()
     (p̂1, p̂2, ŷ1, ŷ2, ŷ3, ŷ4, ŷ5, ŷ6) = Lux.apply(model.model.u, DatType.(x_test_sc), model.ps, states_t)[1]
@@ -422,9 +336,11 @@ const DatType = Float64
         hidespines!(axs[16])
         display(fg1)
 
-        # error("Hello")
         # Save the figure
-        save("/home/lcandiot/Developer/MeltMigration_MagmaticSystems/paper_figures_data/png/Figure_8_MLP_Test.png", fg1, px_per_unit = 4)
+        if !isdir("./user/figures")
+            mkpath("./user/figures")
+        end
+        save("./user/figures/Figure_9_MLP_Test.png", fg1, px_per_unit = 4)
     end
 
     # Error estimates
@@ -534,7 +450,10 @@ const DatType = Float64
 
         display(fg2)
         # Save the figure
-        save("/home/lcandiot/Developer/MeltMigration_MagmaticSystems/paper_figures_data/png/Figure_9_MLP_errors.png", fg2, px_per_unit = 4)
+        if !isdir("./user/figures")
+            mkpath("./user/figures")
+        end
+        save("./user/figures/Figure_10_MLP_errors.png", fg2, px_per_unit = 4)
     end
 
     # Return

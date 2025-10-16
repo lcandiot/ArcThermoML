@@ -1,6 +1,7 @@
-# Original file name in my system: ex_evaluate_crossValidation_paper_v4.jl
+# Original file name in my system: MAGEMin_MLPs/src/ex_evaluate_crossValidation_paper_v4.jl
+# To run this script and to create the figures, you need to download the data from Zenodo
 using JLD2
-using Lux, Statistics, Impute, ROC, Random
+using Lux, Statistics, Random
 using MAGEMin_C
 using CairoMakie, Base, MathTeXEngine, ColorSchemes
 include("MAGEMin_MLPs.jl")
@@ -8,7 +9,7 @@ using .MAGEMin_MLPs
 
 # Tolerances
 const ϵ_log = 1e-5
-DatType = Float32
+const DatType = Float64
 
 @views function evaluate_results()
 
@@ -18,7 +19,7 @@ DatType = Float32
     Random.seed!(rng, seed)
 
     # Set data path
-    data_dir = "/media/largeData/ArcMagma_NeuralNetworks/MLP/NeuralNetworks/CrossValidation_062025/"
+    data_dir = "./user/zenodo_data/" # <-- Path to Zenodo data
     dirs     = readdir(data_dir) 
     mnames   = contains.(dirs, "Hyper") |> idx -> dirs[idx .== 1]
 
@@ -259,8 +260,6 @@ DatType = Float32
     crange_loss = (0.0, 0.5)
     MAE_all = hcat(MAE_16384, hcat(MAE_4096, MAE_1024))
     display(MAE_all)
-    # minMAE = min(min(minimum(MAE_16384), minimum(MAE_4096)), minimum(MAE_1024))
-    # maxMAE = max(max(maximum(MAE_16384), maximum(MAE_4096)), maximum(MAE_1024))
     minMAE = minimum(MAE_all)
     maxMAE = maximum(MAE_all)
     display([minMAE, maxMAE])
@@ -302,7 +301,10 @@ DatType = Float32
     
     # Display and/or save figure
     display(f)
-    save_fig ? save("/home/lcandiot/Developer/MeltMigration_MagmaticSystems/paper_figures_data/png/Figure_3_MLP_crossval_results.png", f, px_per_unit = 1) : nothing
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save_fig ? save("./user/figures/Figure_8_MLP_crossval_results.png", f, px_per_unit = 1) : nothing
 
     # Return
     return nothing

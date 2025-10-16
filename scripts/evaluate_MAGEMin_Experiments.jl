@@ -1,12 +1,13 @@
 # Postprocessing MAGEMin vs Experiments comparison
+# Original file name in my data system: MeltMigration_MagmaticSystems/paper_figures_data/create_figures.jl
 using DataFramesMeta, DelimitedFiles, CSV, JLD2, CairoMakie, MAGEMin_C, ColorSchemes, MathTeXEngine, Random, Statistics, Lux, Printf
 Makie.inline!(true)
 
 set_theme!(theme_latexfonts())
 
 # Include some functionality for Visualisation
-include("./viz_functionality.jl")
-include("./thermodynamic_functionality.jl")
+include("viz_functionality.jl")
+include("thermodynamic_functionality.jl")
 
 # Define main
 function postprocess_comparison()
@@ -65,13 +66,13 @@ function postprocess_comparison()
     # -------------------------------------- #
 
     # Switches
-    fig_oxides   = false    # Figure 4
-    fig_MFdens   = false    # Figure 7
-    fig_BLcomp   = false    # Figure 6
-    fig_Blatter6 = false     # Figure 14
+    fig_oxides   = true    # Figure 4
+    fig_MFdens   = true    # Figure 7
+    fig_BLcomp   = true    # Figure 6
+    fig_Blatter6 = true     # Figure 14
     fig_expBias  = true    # Figure 1
-    fig_bench    = false    # Figure 11
-    fig_phcomp   = false    # Figure 5
+    fig_bench    = true    # Figure 11
+    fig_phcomp   = true    # Figure 5
 
     # Set plot options
     plt_opts_Oxides = makie_plot_options(; fig_size = (1100, 600), fig_res = 2, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
@@ -396,7 +397,10 @@ function create_composition_figure(df_MAGE :: DataFrame, liq_oxides :: Vector{St
 
     # Print figure
     display(fg1)
-    save("./figures/Figure_4_oxide_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_4_oxide_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -507,7 +511,10 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
 
     # Print figure
     display(fg1)
-    save("./figures/Figure_7_MUVi_meltfrac_dens.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_7_MUVi_meltfrac_dens.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -521,123 +528,10 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
         @rsubset :Citation == "Blatter2013" || :Citation == "Blatter2023"
     end
 
-    # Load phase diagram data
-    # data, header = readdlm("./refined/Blatter2013_new_ig.csv", ',', header = true)
-    # df_PD        = DataFrame(data, vec(header))
-
-    # # Get the stable phase for each minimization
-    # idSystem = findall(x -> x .== "system", df_PD[:, "phase"])
-    # deleteat!(df_PD, idSystem)
-    # npts       = length(unique(df_PD[:, "point[#]"]))                   # No. of minimizations
-
-    # ph_vec     = Vector{Vector{String}}(undef, npts)                    # Initialize vector that contains stable phase at each minimization point
-    # T_vec      = Vector{Float64}(undef, npts)                           # Initialize vector that contains T at each minimization point
-    # P_vec      = Vector{Float64}(undef, npts)                           # Initialize vector that contains P at each minimization point
-    # field_vec  = Vector{Float64}(undef, npts)                           # Initialize vector that contains the field index to which the minimization point belongs
-    # var_vec    = Vector{Float64}(undef, npts)                           # Initialize vector that contains the field index to which the minimization point belongs
-    
-    # Threads.@threads for iPt in eachindex(ph_vec)                       # Loop through each minimization point ...
-    #     idPts = findall(x -> x .== iPt, df_PD[:, "point[#]"])           # ... get all data entries for current point
-    #     # deleteat!(idPts, 1)                                             # ... remove system info from detected indices
-    #     ph_vec[iPt] = String.(df_PD[idPts, "phase"])                    # ... collect stable phases at each point
-    #     T_vec[iPt]  = reshape(unique(df_PD[idPts, "T[°C]"  ]), 1)[1]                    # ... collect stable phases at each point
-    #     P_vec[iPt]  = reshape(unique(df_PD[idPts, "P[kbar]"]), 1)[1]                    # ... collect stable phases at each point
-    # end
-
-    # # Get fields
-    # sort!.(ph_vec)                                                      # Sort the phase strings at each minimization point for comparison
-    # ph_fields = unique(ph_vec)                                        # Initialize container fields
-    # nflds     = length(ph_fields)                                     # No. of fields in diagram
-
-    # for (idx, field) in enumerate(ph_fields)                            # Loop through phase fields ...
-    #     idPts  = findall(x -> x  == field, ph_vec)                      # ... find all minimization points that belong to the current field
-    #     field_vec[idPts] .= idx
-    #     var_vec[idPts] .= 11 - length(field) + 2
-    #     # if idx == 16
-    #     #     println(idPts)
-    #     # end
-    # end
-
-    # println(unique(field_vec))
-    # return
-
-    # Interpolate data
-    # Trange                 = (900.0, 1400.0)
-    # Prange                 = (3.0, 18.0)
-    # num_ini_lev            = 3
-    # num_ref_lev            = 4
-    # npts                   = 2^(num_ini_lev + num_ref_lev)
-    # var_2d, T_plot, P_plot = interp_scattered_2D(T_vec, P_vec, var_vec, Trange, Prange, npts, "MAGEMin")
-    # field_2d, _, _         = interp_scattered_2D(T_vec, P_vec, field_vec, Trange, Prange, npts, "MAGEMin")
-
-    # T2D = repeat(T_plot , npts) |> x -> reshape(x, size(var_2d))
-    # P2D = repeat(P_plot', npts) |> x -> reshape(x, size(var_2d))
-
     # Initialize figure
     fg1    = Figure(size = plt_opts.fig_size, fontsize = plt_opts.font_size, figure_padding = plt_opts.figure_pad)
-    # GL_PD  = fg1[1,1] = GridLayout()                                                               # Layout for phase diagram
-    # ax_PD  = Axis(GL_PD[1,1][1,1], xlabel = L"$T$ [°C]", ylabel = L"$P$ [kbar]", xtickformat = "{:.1f}", ytickformat = "{:.1f}")            # Axis for phase diagram
     GL_ph  = fg1[1, 1:2][1,1] = GridLayout()                                                            # Layout for mineral abundance comparison
     axs_ph = [Axis(GL_ph[i, j], xtickformat = "{:.1f}", ytickformat = "{:.1f}", aspect = 1.0) for i in 1:2, j in 1:3]                                             # Axis for mineral abundance comparison
-    
-    # Visualize phase diagram
-    # hm1 = heatmap!(ax_PD, T_plot, P_plot, var_2d, colormap = Reverse(:blues), colorrange = (minimum(var_2d), maximum(var_2d)), nan_color = :magenta)
-    # cl1 = contour!(ax_PD, T_plot, P_plot, field_2d, color = :black, linewidth = 1.0, levels = (1:nflds), linestyle = :dash)
-    
-    # fg2 = Figure()
-    # ax1 = Axis(fg2[1,1][1,1])
-    # hm1 = heatmap!(ax1, field_2d)
-    # Colorbar(fg2[1,1][1,2], hm1)
-    # display(fg2)
-
-    # # Generate diagram labels
-    # mask        = zeros(Int64, size(field_2d))                  # This mask is used to identify only the currently searched phase field
-    # leg_str     = Vector{String}(undef, size(ph_fields)[1])     # Initialize legend string
-    # lost_fields = []
-    # counter = 0
-    # for (idx, field) in enumerate(ph_fields)                # Loop through fields ...
-    #     mask .= 0                                           # ... maks all inactive to 0
-    #     mask[field_2d .== idx] .= 1                         # ... except for the current
-    #     idx_field = findall(mask .== 1)                     # ... identify all indices that belong to current field
-
-    #     # Small fields might have been lost during interpolation ... flag and remove them from the list
-    #     if isempty(idx_field)
-    #         push!(lost_fields, idx)
-    #         continue
-    #     else
-    #         counter += 1                                        # Recovered field no.
-    #         idx_field_min = minimum(getindex.(idx_field, 1))    # ... their minimum and maximum values
-    #         idx_field_max = maximum(getindex.(idx_field, 1))
-    #         idy_field_min = minimum(getindex.(idx_field, 2))
-    #         idy_field_max = maximum(getindex.(idx_field, 2))
-    #         idx_text_annot = cld((idx_field_max - idx_field_min), 2) + idx_field_min        # ... calculate a useful position in the field to place the annotation
-    #         idy_text_annot = cld((idy_field_max - idy_field_min), 2) + idy_field_min
-    #         # A_field = sum(mask .* (T_plot[2] - T_plot[1]) .* (P_plot[2] - P_plot[1])) / ( (Trange[2] - Trange[1]) * (Prange[2] - Prange[1]) ) * 100.0
-
-    #         text_str = "$(counter)"                                 # ... create annotation string
-    #         txt = text!(ax_PD, T2D[idx_text_annot, idy_text_annot], P2D[idx_text_annot, idy_text_annot], text = text_str, color = :white, align = (:center, :center), justification = :center, fontsize = 13)                                                   # ... set annotation
-
-    #         ph_str = replace("$(ph_fields[idx])", "[" => "") |> x -> replace(x, "]" => "") |> x -> replace(x, "\"" => "")       # ... strip stable phase string for the legend
-    #         leg_str[idx] = "$(counter) = $ph_str\n"                                                                                 # ... store it for later use
-    #     end
-    # end
-
-    # # Remove small fields that could be interpolated
-    # deleteat!(leg_str, lost_fields)
-
-    # # Add stable phases list
-    # nbanks    = 2
-    # bank_marg = 0.00
-    # wcol      = 0.42 / nbanks + (nbanks - 1) * bank_marg
-    # idx_partition = cld(length(leg_str), nbanks)
-    # for idx in 1:nbanks
-    #     idx_start = 1 + (idx - 1) * idx_partition
-    #     idx_end   = idx * idx_partition
-    #     idx == nbanks ? idx_end = length(leg_str) : nothing
-    #     text!(fg1.scene, (0.57 + (idx - 1)*wcol, 0.96), space = :relative, text = join(leg_str[idx_start:idx_end]), word_wrap_width = 250, align = (:left, :top), fontsize = plt_opts.label_size)        # Create phase legend
-    # end
-    # text!(fg1.scene, (0.57, 0.99), space = :relative, text = "Stable phases", align = (:left, :top), font = :bold)
-    # cb = Colorbar(GL_PD[1,1][1,2], hm1, label = L"$Va$ [ ]")                                                                                           # Add colorbar to phase diagram
 
     # Visualize phase comparison
     P_Bl13  = [4.0, 9.0, 16.7]                                                                       # Set pressure and phase names
@@ -717,25 +611,7 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     axs_ph[4].xlabel = L"$T$ [°C]"
     axs_ph[6].xlabel = L"$T$ [°C]"
 
-    # Align labels
-    # yspace = maximum(tight_yticklabel_spacing!, [ax_PD, axs_ph[1]])
-    # xspace = maximum(tight_xticklabel_spacing!, [ax_PD, axs_ph[1]])
-    # for Axs in axs_ph
-    #     Axs.xticklabelspace = xspace + plt_opts.tick_label_pad
-    #     Axs.yticklabelspace = yspace + plt_opts.tick_label_pad
-    # end
-    # ax_PD.xticklabelspace = xspace + plt_opts.tick_label_pad
-    # ax_PD.yticklabelspace = yspace + plt_opts.tick_label_pad
-
     # Add subplot labels
-    # text!(  ax_PD, 0, 1, 
-    #         text = string(plt_opts.spl_alpha_small[1]), 
-    #         space = :relative, align = (:left, :top), 
-    #         offset = (4, -2), 
-    #         font = :bold, 
-    #         fontsize = plt_opts.font_size,
-    #         color = :white
-    # )
     for (idx_ax, Ax) in enumerate(axs_ph)
         text!(  Ax, 0, 1, 
         text = string(plt_opts.spl_alpha_small[idx_ax]), 
@@ -748,7 +624,10 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     end
     # Print figure
     display(fg1)
-    save("./figures/Figure_6_Blatter_abundance_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_6_Blatter_abundance_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -855,7 +734,10 @@ function Blatter2013_temperature_vsOxide(df :: DataFrame, plt_opts :: makie_plot
     end
     # Print figure
     display(fg1)
-    save("./figures/Figure_14_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_14_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -916,7 +798,10 @@ function create_experimentBiases_figure(plt_opts :: makie_plot_options)
 
     # Print figure
     display(fg1)
-    save("./figures/Figure_1_experimental_bias.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_1_experimental_bias.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -1240,7 +1125,10 @@ function create_benchmark_figure(plt_opts :: makie_plot_options)
     println("Speedup IsoR -> Net CPU / MAGE    iguess : $(time_MAGE_iguess_Iso[1, :("median(Time) [ns]")] / time_NetCPU_Iso[1, :("median(Time) [ns]")]) x")
     
     # Save and display figure
-    save("./figures/Figure_11_Benchmark_64BLAS.png", fg1, px_per_unit = plt_opts.fig_res)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_11_Benchmark_64BLAS.png", fg1, px_per_unit = plt_opts.fig_res)
     display(fg1)
 
     # Return
@@ -1342,9 +1230,13 @@ function create_mineralComparison_figure(df :: DataFrame, plt_opts :: makie_plot
         fontsize = plt_opts.font_size
         )
     end
-    display(fg1)
 
-    save("./figures/Figure_5_mineral_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    # Save figure
+    display(fg1)
+    if !isdir("./user/figures")
+        mkpath("./user/figures")
+    end
+    save("./user/figures/Figure_5_mineral_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 end
 
 # ----------------
