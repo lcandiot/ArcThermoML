@@ -4,9 +4,6 @@
 # User directory
 /user/*
 
-# For the first round, we do not add visualization routines
-/scripts/thermodynamic_functionality.jl
-/scripts/viz_functionality.jl
 /figures/*
 
 # Exlude massive data files
