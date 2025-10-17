@@ -1,5 +1,7 @@
 # Supporting Julia Scripts for “Validating thermodynamic models of arc-magma differentiation and training neural networks for rapid thermodynamic property inference”
 
+[![DOI](https://zenodo.org/badge/1073623371.svg)](https://doi.org/10.5281/zenodo.17380100)
+
 This repository contains the **Julia scripts and configuration files** used in  
 > Lorenzo G. Candioti, Chetan Nathwani, and Cyril Chelle-Michou (2025),  
 > *Validating thermodynamic models of arc-magma differentiation and training neural networks for rapid thermodynamic property inference*
