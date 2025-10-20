@@ -66,13 +66,13 @@ function postprocess_comparison()
     # -------------------------------------- #
 
     # Switches
-    fig_oxides   = true    # Figure 4
+    fig_oxides   = false    # Figure 4
     fig_MFdens   = true    # Figure 7
-    fig_BLcomp   = true    # Figure 6
-    fig_Blatter6 = true     # Figure 14
-    fig_expBias  = true    # Figure 1
-    fig_bench    = true    # Figure 11
-    fig_phcomp   = true    # Figure 5
+    fig_BLcomp   = false    # Figure 6
+    fig_Blatter6 = false     # Figure A4
+    fig_expBias  = false    # Figure 1
+    fig_bench    = false    # Figure 11
+    fig_phcomp   = false    # Figure 5
 
     # Set plot options
     plt_opts_Oxides = makie_plot_options(; fig_size = (1100, 600), fig_res = 2, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
@@ -326,8 +326,8 @@ function create_composition_figure(df_MAGE :: DataFrame, liq_oxides :: Vector{St
         yplot = X_MAGE_liq .- X_MAGE_start
         ax = Axis(GL[idx_Ox][1,1], aspect = 1.0, ylabel = L"$Δ$ MAGE [wt-%]", xlabel = L"$Δ$ Exp. [wt-%]", ytickformat = "{:.1f}", xtickformat = "{:.1f}")
         push!(axs, ax)
-        ln = lines!(axs[idx_Ox], minimum(yplot):1:maximum(yplot), minimum(yplot):1:maximum(yplot), color = :goldenrod1, linewidth = plt_opts.line_width)
         sc = scatter!(axs[idx_Ox], xplot , yplot, color = coloring, colormap = cmp, label = ox_labels[idx_Ox], markersize = plt_opts.marker_size)
+        ln = lines!(axs[idx_Ox], [-100, 100], [-100, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
         axislegend(axs[idx_Ox], position = :rb, framevisible = false, labelsize = 11, backgroundcolor = (:white, 0.0))
         text!(  axs[idx_Ox], 0, 1, 
                 text = string(plt_opts.spl_alpha_small[idx_Ox]), 
@@ -477,7 +477,7 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
                     colormap   = :blues, 
                     markersize = plt_opts.marker_size
                     )
-    ln1 = lines!(ax3, minimum(df_sub[idhasLiqM, "density_exp_liq"]):maximum(df_sub[idhasLiqM, "density_exp_liq"]),minimum(df_sub[idhasLiqM, "density_exp_liq"]):maximum(df_sub[idhasLiqM, "density_exp_liq"]), color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln1 = lines!(ax3, [0, 10000], [0, 10000], color = :goldenrod1, linewidth = plt_opts.line_width)
     axislegend(ax1, framecolor = (:gray, 0.5), position = :rb, labelsize = 11)
     axislegend(ax2, framecolor = (:gray, 0.5), position = :rb, backgroundcolor = (:white, 0.1), labelsize = 11)
 
@@ -737,7 +737,7 @@ function Blatter2013_temperature_vsOxide(df :: DataFrame, plt_opts :: makie_plot
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_14_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
+    save("./user/figures/Figure_A4_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -1194,14 +1194,6 @@ function create_mineralComparison_figure(df :: DataFrame, plt_opts :: makie_plot
         limits = (0, 6, 0, 6),
         xticks = [0, 2, 4, 6], yticks = [0, 2, 4, 6]
     )
-    ln1 = lines!(ax1, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln2 = lines!(ax2, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln3 = lines!(ax3, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln4 = lines!(ax4, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln5 = lines!(ax5, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln6 = lines!(ax6, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln7 = lines!(ax7, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
-    ln8 = lines!(ax8, 0.00001:1:100, 0.00001:1:100, color = :goldenrod1, linewidth = plt_opts.line_width)
     scatter!(ax1, df[:, :("plag_exp")], df[:, :("fsp [wt%]")], label = L"$$plag")
     scatter!(ax2, df[:, :("ol_exp")],   df[:, :("ol [wt%]")], label = L"$$ol")
     scatter!(ax3, df[:, :("amph_exp")], df[:, :("amp [wt%]")], label = L"$$amph")
@@ -1210,6 +1202,14 @@ function create_mineralComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     scatter!(ax6, df[:, :("liq_exp")],  df[:, :("liq [wt%]")], label = L"$$liq")
     scatter!(ax7, df[:, :("ilm_exp")],  df[:, :("ilm [wt%]")], label = L"$$ilm")
     scatter!(ax8, df[:, :("sp_exp")],   df[:, :("spl [wt%]")], label = L"$$sp")
+    ln1 = lines!(ax1, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln2 = lines!(ax2, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln3 = lines!(ax3, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln4 = lines!(ax4, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln5 = lines!(ax5, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln6 = lines!(ax6, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln7 = lines!(ax7, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
+    ln8 = lines!(ax8, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
     axislegend(ax1, position = :rb, framevisible = true, labelsize = 11, backgroundcolor = (:white, 0.0), framecolor = (:gray, 0.4))
     axislegend(ax2, position = :rb, framevisible = true, labelsize = 11, backgroundcolor = (:white, 0.0), framecolor = (:gray, 0.4))
     axislegend(ax3, position = :rb, framevisible = true, labelsize = 11, backgroundcolor = (:white, 0.0), framecolor = (:gray, 0.4))

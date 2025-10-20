@@ -32,6 +32,7 @@ subdirectories.
 - Julia **v1.11** or newer  
 - Packages will be installed automatically from `Project.toml`  
 - Operating system: Linux, macOS, or Windows
+- Data set: https://doi.org/10.5281/zenodo.17369875
 
 ---
 
@@ -67,7 +68,7 @@ As a result you should see the following ouptut printed in the Julia REPL
 
 ## 📊 Reproducing the main article figures
 
-First download the required data from the Zenodo repository and store them somewhere (in the `./user` directory for example). The files to reproduce the figures are
+First download the required data from the Zenodo repository linked above and store them somewhere (in the `./user` directory for minimum changes to the scripts). The files to reproduce the figures are
 ```
 ./scripts/
     evaluate_crossValidation.jl
