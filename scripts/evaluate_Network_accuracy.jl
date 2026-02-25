@@ -1,7 +1,7 @@
 # Original file name in my system: MAGEMin_MLPs/src/ex_evaluate_results_v6.jl
 # To run this script and to create the figures, you need to download the data from Zenodo
 using JLD2
-using Lux, Statistics, Random
+using Lux, Statistics, Random, DataFramesMeta, DelimitedFiles
 using MAGEMin_C
 using CairoMakie, Base, Printf
 include("MAGEMin_MLPs.jl")
@@ -29,6 +29,7 @@ const DatType = Float64
     # Switches
     draw_fig1 = true
     draw_fig2 = true
+    draw_figS6 = true
     log_transform = true
 
     # Load data and extract info
@@ -67,6 +68,8 @@ const DatType = Float64
     end
     ŷ[3:10]     ./= sum(ŷ[3:10])
     y = zeros(DatType, size(ŷ))
+    Out_PT.frac_M_wt > 0.0 ? y[1] = 1.0 : nothing
+    Out_PT.frac_F_wt > 0.0 ? y[2] = 1.0 : nothing
     y[3, 1] = Out_PT.bulk_M_wt[1]
     y[4, 1] = Out_PT.bulk_M_wt[2]
     y[5, 1] = Out_PT.bulk_M_wt[3]
@@ -82,8 +85,25 @@ const DatType = Float64
     y[15,1] = Out_PT.rho_F
     liq_tot = sum(y[3:10])
     y[3:10] ./= liq_tot
+    println("Ground truth:")
     display(y)
+    liquid_mask = (ŷ[1] >= 0.5) |> x -> Int(x)
+    fluid_mask  = (ŷ[2] >= 0.5) |> x -> Int(x)
+    println("fluid mask:")
+    display(fluid_mask)
+    ŷ[1] *= liquid_mask
+    ŷ[2] *= fluid_mask
+    for i in 3:10
+        ŷ[i] *= liquid_mask
+    end
+    ŷ[12] *= liquid_mask
+    ŷ[13] *= fluid_mask
+    ŷ[14] *= liquid_mask
+    ŷ[15] *= fluid_mask
+    ŷ .= abs.(ŷ)
+    println("Surrogate:")
     display(ŷ)
+    println("Relative error")
     display(abs.(y .- ŷ) ./ max.(y, ŷ) .* 100.0)
 
     # Load test data input and output data
@@ -135,6 +155,8 @@ const DatType = Float64
     # Generate fluid mask
     liquid_mask = ŷ[1, :] .>= 0.5
     fluid_mask  = ŷ[2, :] .>= 0.5
+    ŷ[1, :] .*= liquid_mask
+    ŷ[2, :] .*= fluid_mask
     for i in 3:10
         ŷ[i, :] .*= liquid_mask
     end
@@ -142,21 +164,21 @@ const DatType = Float64
     ŷ[13, :] .*= fluid_mask
     ŷ[14, :] .*= liquid_mask
     ŷ[15, :] .*= fluid_mask
-
+    ŷ .= abs.(ŷ)
     # Correct points that are close to the aggregate transitions
-    thres = 5e-2
+    thres = 20e-2
     ph_mob      = vec(sum(ŷ[[12, 13], :], dims = 1))
     ph_mob_true = vec(sum(y_test[[12, 13], :], dims = 1))
-    idx_solid  = findall(x -> x                    < 1e-3,       ph_mob)
+    idx_solid  = findall(x -> x                    < 1e-6,       ph_mob)
     idx_molten = findall(x -> x                    > 1.0 - thres, ph_mob)
-    idx_solid_true  = findall(x -> x                    < 1e-3,       ph_mob_true)
+    idx_solid_true  = findall(x -> x                    < 1e-6,       ph_mob_true)
     idx_molten_true = findall(x -> x                    > 1.0 - thres, ph_mob_true)
     ŷ[[12, 13, 14, 15], idx_solid       ] .= 0.0
     y_test[[12, 13, 14, 15], idx_solid_true       ] .= 0.0
-    idx_dens_melt = ŷ[14, :] .> ŷ[11, :]
-    ŷ[14, idx_dens_melt] .= ŷ[11, idx_dens_melt]
-    idx_dens_melt = y_test[14, :] .> y_test[11, :]
-    y_test[14, idx_dens_melt] .= y_test[11, idx_dens_melt]
+    # idx_dens_melt = ŷ[14, :] .> ŷ[11, :]
+    # ŷ[14, idx_dens_melt] .= ŷ[11, idx_dens_melt]
+    # idx_dens_melt = y_test[14, :] .> y_test[11, :]
+    # y_test[14, idx_dens_melt] .= y_test[11, idx_dens_melt]
     ρ_sol_pred = (ŷ[11, :] .- ŷ[12, :] .* ŷ[14, :] .- ŷ[13, :] .* ŷ[15, :]) ./ (1.0 .- ŷ[12, :] .- ŷ[13, :])
     ρ_sol_pred[idx_molten] .= 0.0
 
@@ -222,10 +244,10 @@ const DatType = Float64
     for col in 1:ncol
         for row in 1:nrow
             if col == 1 && row < nrow
-                ax = Axis(fg1[row, col][1,1], ylabel = L"$$MLP", aspect = 1.0)
+                ax = Axis(fg1[row, col][1,1], ylabel = L"$$Surrogate", aspect = 1.0)
                 push!(axs, ax)
             elseif col == 1 && row == nrow
-                ax = Axis(fg1[row, col][1,1], xlabel = L"$$MAGEMin", ylabel = L"$$MLP", aspect = 1.0)
+                ax = Axis(fg1[row, col][1,1], xlabel = L"$$MAGEMin", ylabel = L"$$Surrogate", aspect = 1.0)
                 push!(axs, ax)
             elseif row == nrow && col > 1
                 ax = Axis(fg1[row, col][1,1], xlabel = L"$$MAGEMin", aspect = 1.0)
@@ -294,21 +316,21 @@ const DatType = Float64
         axs[15].yscale     = log10
         axs[15].xticks = ([10^2, 10^6, 10^10, 10^14],[L"$10^{2}$", L"$10^{6}$", L"$10^{10}$", L"$10^{14}$"])
         axs[15].yticks = ([10^2, 10^6, 10^10, 10^14],[L"$10^{2}$", L"$10^{6}$", L"$10^{10}$", L"$10^{14}$"])
-        scs[1].label  = L"SiO$_2$ [wt]"
-        scs[2].label  = L"Al$_2$O$_3$ [wt]"
-        scs[3].label  = L"$$CaO [wt]"
-        scs[4].label  = L"$$MgO [wt]"
-        scs[5].label  = L"$$FeO [wt]"
-        scs[6].label  = L"K$_2$O+Na$_2$O [wt]"
-        scs[7].label  = L"TiO$_2$ [wt]"
-        scs[8].label  = L"H$_2$O [wt]"
-        scs[9].label = L"$\rho$ Sys [kg.m$^{-3}$]"
-        scs[10].label = L"$\phi$ Liq [ ]"
-        scs[11].label = L"$\phi$ Flu [ ]"
-        scs[12].label = L"$\rho$ Liq [kg.m$^{-3}$]"
-        scs[13].label = L"$\rho$ Flu [kg.m$^{-3}$]"
-        scs[14].label = L"$\rho$ Sol [kg.m$^{-3}$]"
-        scs[15].label = L"$\eta$ Liq [Pa.s]"
+        scs[1].label  = L"SiO$_2$ [wt.%]"
+        scs[2].label  = L"Al$_2$O$_3$ [wt.%]"
+        scs[3].label  = L"$$CaO [wt.%]"
+        scs[4].label  = L"$$MgO [wt.%]"
+        scs[5].label  = L"$$FeO [wt.%]"
+        scs[6].label  = L"K$_2$O+Na$_2$O [wt.%]"
+        scs[7].label  = L"TiO$_2$ [wt.%]"
+        scs[8].label  = L"H$_2$O [wt.%]"
+        scs[9].label = L"$\rho_{\text{Sys}}$ [kg.m$^{-3}$]"
+        scs[10].label = L"$\phi_{\text{Liq}}$ [ ]"
+        scs[11].label = L"$\phi_{\text{Flu}}$ [ ]"
+        scs[12].label = L"$\rho_{\text{Liq}}$ [kg.m$^{-3}$]"
+        scs[13].label = L"$\rho_{\text{Flu}}$ [kg.m$^{-3}$]"
+        scs[14].label = L"$\rho_{\text{Sol}}$ [kg.m$^{-3}$]"
+        scs[15].label = L"$\eta_{\text{Liq}}$ [Pa.s]"
         axislegend(axs[1],  position = (0.8, 0.05), labelsize = lsize_leg, halign = :right, backgroundcolor = (:white, 0.0), framecolor = (:black, 0.5), framevisible = false)
         axislegend(axs[2],  position = (0.8, 0.05), labelsize = lsize_leg, halign = :right, backgroundcolor = (:white, 0.0), framecolor = (:black, 0.5), framevisible = false)
         axislegend(axs[3],  position = (0.8, 0.05), labelsize = lsize_leg, halign = :right, backgroundcolor = (:white, 0.0), framecolor = (:black, 0.5), framevisible = false)
@@ -378,10 +400,10 @@ const DatType = Float64
         σAE_neg = [std(row[row .< m]) for (row, m) in zip(eachrow(Err), MAE)]
 
         # Open figure 2
-        fg2 = Figure(size = (500, 500))
-        ax1 = Axis(fg2[1,1], aspect = 1.681, ylabel = L"$$Error [wt-%]", tellheight = false, tellwidth = false)
-        ax2 = Axis(fg2[1,2], aspect = 1.681, ylabel = L"$$Error [wt-%]", tellheight = false, tellwidth = false)
-        ax3 = Axis(fg2[2,1], aspect = 1.681, ylabel = L"$$Error [wt-%]", tellheight = false, tellwidth = false)
+        fg2 = Figure(size = (650, 600))
+        ax1 = Axis(fg2[1,1], aspect = 1.681, ylabel = L"$$Error [wt.%]", tellheight = false, tellwidth = false)
+        ax2 = Axis(fg2[1,2], aspect = 1.681, ylabel = L"$$Error [wt.%]", tellheight = false, tellwidth = false)
+        ax3 = Axis(fg2[2,1], aspect = 1.681, ylabel = L"$$Error [wt.%]", tellheight = false, tellwidth = false)
         ax4 = Axis(fg2[2,2], aspect = 1.681, ylabel = L"Error [kg.m$^{-3}$]", tellheight = false, tellwidth = false)
         GL = fg2[3, 1:2] = GridLayout()
         ax5 = Axis(GL[1,1], aspect = 1.0, tellheight = true, tellwidth = true)
@@ -396,11 +418,11 @@ const DatType = Float64
         err = errorbars!(ax3, [1,2], MAE[[10, 11]] .* 100.0, σAE_neg[[10, 11]] .* 100.0, σAE_pos[[10, 11]] .* 100.0; whiskerwidth = 8)
         sc4 = scatter!(ax4, MAE[[9, 12, 13]])
         err = errorbars!(ax4, [1,2,3], MAE[[9, 12, 13]], σAE_neg[[9, 12, 13]], σAE_pos[[9, 12, 13]]; whiskerwidth = 8)
-        hm1 = heatmap!(ax5, round.(cm_liq)', colormap = CairoMakie.Reverse(:berlin))
-        hm2 = heatmap!(ax6, round.(cm_flu)', colormap = CairoMakie.Reverse(:berlin))
+        hm1 = heatmap!(ax5, round.(cm_liq)', colormap = :acton)
+        hm2 = heatmap!(ax6, round.(cm_flu)', colormap = :acton)
 
         # Map values -> colors from the heatmap colormap
-        cmap = cgrad(:berlin, 256)
+        cmap = cgrad(:acton, 4)
         vminl, vmaxl = extrema(cm_liq)
         vminf, vmaxf = extrema(cm_flu)
         norm(v, vmin, vmax) = (v - vmin) / (vmax - vmin + eps())  # normalize into [0,1]
@@ -413,7 +435,7 @@ const DatType = Float64
             txtcolor = lum > 0.5 ? :black : :white
             text!(ax5, coord[1], coord[2],
                 text = "$(lbl) = $(round(val)) %",
-                align = (:center, :center), color = txtcolor, fontsize = 10)
+                align = (:center, :center), color = txtcolor, fontsize = 8)
         end
         for (coord, lbl, val) in zip(coords, cm_lab, vec(cm_flu))
             # get RGBA color for this value
@@ -423,7 +445,7 @@ const DatType = Float64
             txtcolor = lum > 0.5 ? :black : :white
             text!(ax6, coord[1], coord[2],
                 text = "$(lbl) = $(round(val)) %",
-                align = (:center, :center), color = txtcolor, fontsize = 10)
+                align = (:center, :center), color = txtcolor, fontsize = 8)
         end
 
         # Make the labels look nice
@@ -443,19 +465,82 @@ const DatType = Float64
         ax4.xticks = ([1,2,3], [L"$\rho$ Sys", L"$\rho$ Liq", L"$\rho$ Flu"])
         ax4.xticklabelrotation = π/4
         text!(ax4, "e", position = (0.05, 0.85), space = :relative)
-        text!(ax5, "c", position = (0.05, 0.85), space = :relative)
-        text!(ax6, "f", position = (0.05, 0.85), space = :relative)
+        text!(ax5, "c", position = (0.05, 0.85), space = :relative, color = :white)
+        text!(ax6, "f", position = (0.05, 0.85), space = :relative, color = :white)
         hidedecorations!(ax5)
         hidedecorations!(ax6)
-
         display(fg2)
+
+        # Estimate solid density errors using the variance formula
+        println("σ(AE)")
+        display(σAE)
+        fg3 = Figure(size = (500, 500))
+        ax1 = Axis(fg3[1,1], xlabel = L"$(\phi_{\text{Liq}} + \phi_{\text{Flu}})$ [wt.%]", ylabel = L"$\sigma(\rho_{\text{Sol}})$ [kg.m$^{-3}$]", aspect=1.618, limits = (0, 100, 0, 475))
+        display(fg3)
+        ρL = [2700.0, 3200, 3300]
+        ρS = [2800.0, 3300, 3200]
+        ρF = 1000.0
+        ϕF = 0.05
+        ϕL = [0.0, 0.1, 0.20, 0.45, 0.70, 0.85]
+        ErrM = zeros(size(Err, 2), 5)
+        ErrM[:, 1] .= Err[9, :]
+        ErrM[:, 2] .= Err[13, :]
+        ErrM[:, 3] .= Err[12, :]
+        ErrM[:, 4] .= Err[11, :]
+        ErrM[:, 5] .= Err[10, :]
+        covM = Statistics.cov(ErrM)
+        dρ_Arr = [0.0 for _ in eachindex(ϕL)]
+        for (iρL, iρS) in zip(ρL, ρS)
+            for iϕL in eachindex(ϕL)
+                dρdρS = 1.0 / (1.0 - ϕL[iϕL] - ϕF)
+                dρdρL = -ϕL[iϕL] / (1.0 - ϕL[iϕL] - ϕF)
+                dρdρF = -ϕF / (1.0 - ϕL[iϕL] - ϕF)
+                dρdϕL = (iρS - iρL + iρL * ϕF - ρF * ϕF) / (1.0 - ϕL[iϕL] - ϕF)^2
+                dρdϕF = (iρS - ρF  + ρF  * ϕL[iϕL] - iρL * ϕL[iϕL]) / (1.0 - ϕL[iϕL] - ϕF)^2
+                J = [dρdρS dρdρF dρdρL dρdϕF dρdϕL]
+                dρ_Arr[iϕL] = sqrt(J * covM * J')[1]
+            end
+            scatter!(ax1, (ϕL .+ ϕF) .* 100.0, dρ_Arr, label = L"$\rho_{\text{Liq}}$ = %$iρL | $\rho_{\text{Sys}}$ = %$iρS")
+            lines!(ax1, (ϕL .+ ϕF) .* 100.0, dρ_Arr, label = L"$\rho_{\text{Liq}}$ = %$iρL | $\rho_{\text{Sys}}$ = %$iρS")
+            lines!(ax1, vec(ones(10,1) .* 85.0), vec(LinRange(0.0, 500.0, 10)), color=:black, linestyle = :dash)
+            display(dρ_Arr)
+        end
+        axislegend(ax1, merge = true, position = :lt)
+        display(fg3)
         # Save the figure
         if !isdir("./user/figures")
             mkpath("./user/figures")
         end
         save("./user/figures/Figure_10_MLP_errors.png", fg2, px_per_unit = 4)
+        save("./user/figures/Figure_S5_MLP_solidProps.png", fg3, px_per_unit = 4)
     end
 
+    if draw_figS6
+        # Plot N2O, K2O and Na2O+K2O starting compositions
+        bulk_fname = "./data/surrogate_model/train_data.csv"
+        data, header = readdlm(bulk_fname, ',', header = true)
+        df           = DataFrame(data, vec(header))
+        idx_neg = []
+        for idx in axes(df, 1)
+            ID = findfirst(x -> x < 0.0, df[idx, :])
+            isnothing(ID) ? continue : push!(idx_neg, idx)
+        end
+        deleteat!(df, idx_neg)
+
+        df = @chain df begin
+            @rsubset :SiO2 >= 45.0 && :SiO2 <= 71.0
+        end
+
+        fg4 = Figure(size = (800, 400))
+        ax1 = Axis(fg4[1,1], aspect = DataAspect(), limits = (45, 71, 0, 10), xlabel = L"SiO$_2$ [wt.%]", ylabel = L"Na$_2$O [wt.%]")
+        ax2 = Axis(fg4[1,2], aspect = DataAspect(), limits = (45, 71, 0, 10), xlabel = L"SiO$_2$ [wt.%]", ylabel = L"K$_2$O [wt.%]")
+        ax3 = Axis(fg4[2,1], aspect = DataAspect(), limits = (45, 71, 0, 10), xlabel = L"SiO$_2$ [wt.%]", ylabel = L"Na$_2$O + K$_2$O [wt.%]")
+        sc1 = scatter!(ax1, df[:,"SiO2"], df[:,"Na2O"])
+        sc1 = scatter!(ax2, df[:,"SiO2"], df[:,"K2O"])
+        sc1 = scatter!(ax3, df[:,"SiO2"], df[:,"K2O"] .+ df[:,"Na2O"])
+        display(fg4)
+        save("./user/figures/Figure_S6_alkalis.png", fg4, px_per_unit = 4)
+    end
     # Return
     return nothing
 end

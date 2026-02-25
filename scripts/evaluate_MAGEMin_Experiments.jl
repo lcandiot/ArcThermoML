@@ -1,6 +1,8 @@
 # Postprocessing MAGEMin vs Experiments comparison
 # Original file name in my data system: MeltMigration_MagmaticSystems/paper_figures_data/create_figures.jl
 using DataFramesMeta, DelimitedFiles, CSV, JLD2, CairoMakie, MAGEMin_C, ColorSchemes, MathTeXEngine, Random, Statistics, Lux, Printf
+using Statistics
+
 Makie.inline!(true)
 
 set_theme!(theme_latexfonts())
@@ -66,22 +68,22 @@ function postprocess_comparison()
     # -------------------------------------- #
 
     # Switches
-    fig_oxides   = false    # Figure 4
+    fig_oxides   = true    # Figure 4
     fig_MFdens   = true    # Figure 7
-    fig_BLcomp   = false    # Figure 6
-    fig_Blatter6 = false     # Figure A4
-    fig_expBias  = false    # Figure 1
-    fig_bench    = false    # Figure 11
-    fig_phcomp   = false    # Figure 5
+    fig_BLcomp   = true    # Figure 6
+    fig_Blatter6 = true     # Figure S4
+    fig_expBias  = true    # Figure 1
+    fig_bench    = true    # Figure 11
+    fig_phcomp   = true    # Figure 5
 
     # Set plot options
-    plt_opts_Oxides = makie_plot_options(; fig_size = (1100, 600), fig_res = 2, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
-    plt_opts_MvsV   = makie_plot_options(; fig_size = (1000, 1000), fig_res = 2, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
-    plt_opts_BLcomp = makie_plot_options(; fig_size = (1000, 800), fig_res = 2, font_size = 16.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0, figure_pad = 25.0)
-    plt_opts_BLF6   = makie_plot_options(; fig_size = (1241, 1754), fig_res = 2, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
-    plt_opts_Bias   = makie_plot_options(; fig_size = (1241, 767),  fig_res = 2, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
-    plt_opts_bench  = makie_plot_options(; fig_size = (1000, 552), fig_res = 2, font_size = 18.0, line_width = 2.0, marker_size = 18.0, label_size = 16.0, figure_pad = 25.0)
-    plt_opts_phcomp = makie_plot_options(; fig_size = (1100, 552), fig_res = 2, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
+    plt_opts_Oxides = makie_plot_options(; fig_size = (1100, 600), fig_res = 4, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
+    plt_opts_MvsV   = makie_plot_options(; fig_size = (1000, 800), fig_res = 4, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
+    plt_opts_BLcomp = makie_plot_options(; fig_size = (1000, 650), fig_res = 4, font_size = 16.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0, figure_pad = 25.0)
+    plt_opts_BLF6   = makie_plot_options(; fig_size = (1241, 1754), fig_res = 4, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
+    plt_opts_Bias   = makie_plot_options(; fig_size = (1241, 767),  fig_res = 4, font_size = 18.0, line_width = 4.0, marker_size = 14.0, label_size = 16.0)
+    plt_opts_bench  = makie_plot_options(; fig_size = (1000, 552), fig_res = 4, font_size = 18.0, line_width = 2.0, marker_size = 18.0, label_size = 16.0, figure_pad = 25.0)
+    plt_opts_phcomp = makie_plot_options(; fig_size = (1100, 552), fig_res = 4, font_size = 15.0, line_width = 4.0, marker_size = 10.0, label_size = 16.0)
 
     # Oxide composition
     fig_oxides ? create_composition_figure(df_MAGE, liq_oxides, plt_opts_Oxides) : nothing
@@ -104,6 +106,80 @@ function postprocess_comparison()
     # Mineral abundance comparison all
     fig_phcomp ? create_mineralComparison_figure(df_MAGE, plt_opts_phcomp) : nothing
 
+    # Quantify error
+    pnames_exp  = ["ol_exp",   "opx_exp",   "cpx_exp",   "gt_exp",  "plag_exp",  "amph_exp", "sp_exp",    "ilm_exp",   "bt_exp",  "qz_exp",  "liq_exp"]
+    pnames_MAGE = ["ol [wt%]", "opx [wt%]", "cpx [wt%]", "g [wt%]", "fsp [wt%]", "amp [wt%]", "spl [wt%]", "ilm [wt%]", "bi [wt%]","q [wt%]", "liq [wt%]"]
+    RMSE_ph = [0.0 for _ in axes(df_MAGE, 1)]
+    RMSE_ox = [0.0 for _ in axes(df_MAGE, 1)]
+    for iExp in axes(df_MAGE, 1)
+        for (ph_exp, ph_M) in zip(pnames_exp, pnames_MAGE)
+            if isnan(df_MAGE[iExp, ph_M])
+                df_MAGE[iExp, ph_M] = 0.0
+            end
+            RMSE_ph[iExp] += (df_MAGE[iExp, ph_exp] - df_MAGE[iExp, ph_M])^2
+        end
+        for ox in liq_oxides
+            RMSE_ox[iExp] += (df_MAGE[iExp, ox*"_exp_liq"] - df_MAGE[iExp, ox*"_liq [wt%]"])^2
+        end
+        RMSE_ph[iExp] = sqrt(RMSE_ph[iExp] / size(pnames_exp)[1])
+        RMSE_ox[iExp] = sqrt(RMSE_ox[iExp] / size(liq_oxides)[1])
+    end
+    fg1 = Figure(size = (900, 900))
+    gl1 = fg1[1,   1:2] = GridLayout()
+    gl2 = fg1[2:3, 1:2] = GridLayout()
+    ax1 = Axis(gl1[1,1], xlabel = L"TiO$_2$ start [wt.%]", ylabel = L"$$RMSE [wt.%]", aspect = 1.618)
+    ax2 = Axis(gl1[1,2], xlabel = L"Al$_2$O$_3$ start [wt.%]", ylabel = L"$$RMSE [wt.%]", aspect = 1.618)
+    ax3 = Axis(gl2[1,1][1,1], aspect = 1.0, title = L"$$Correlation Matrix")
+    sc1 = scatter!(ax1, df_MAGE[:, "TiO2_exp_start"], RMSE_ph, label = L"$$Phases")
+    sc2 = scatter!(ax2, df_MAGE[:, "Al2O3_exp_start"], RMSE_ph)
+    sc3 = scatter!(ax1, df_MAGE[:, "TiO2_exp_start"], RMSE_ox, label = L"$$Oxides")
+    sc4 = scatter!(ax2, df_MAGE[:, "Al2O3_exp_start"], RMSE_ox)
+    axislegend(ax1, position = :rt)
+
+
+    # Second approach: covariance matrix
+    df_cor = @select(
+        df_MAGE,
+        :("T [C]"),
+        :("P [kbar]"),
+        :("SiO2_exp_start"),
+        :("Al2O3_exp_start"),
+        :("CaO_exp_start"),
+        :("Na2O_exp_start"),
+        :("K2O_exp_start"),
+        :("MgO_exp_start"),
+        :("FeO_exp_start"),
+        :("Fe2O3_exp_start"),
+        :("TiO2_exp_start"),
+        :("Cr2O3_exp_start"),
+        :("H2O_exp_start"),
+        :("dfO2")
+    )
+    df_cor.RMSE_ph = RMSE_ph
+    df_cor.RMSE_ox = RMSE_ox
+    display(df_cor)
+    datMat = zeros(size(df_cor))
+    datMat .= df_cor
+    corMat = Statistics.cor(datMat)
+    display(corMat)
+    corMat_plot = deepcopy(corMat)
+    for iRow in axes(corMat_plot, 1)
+        for iCol in axes(corMat_plot, 2)
+            iCol <= iRow ? corMat_plot[iRow, iCol] = NaN : nothing
+        end
+    end
+    
+    hm1 = heatmap!(ax3, corMat_plot, colormap = Reverse(:roma))
+    cb1 = Colorbar(gl2[1,1][1,2], hm1)
+    ax3.xticks = ([i for i in axes(df_cor, 2)], [L"$$T", L"$$P", L"SiO$_2$", L"A$_2$O$_3$", L"$$CaO", L"Na$_2$O", L"K$_2$O", L"$$MgO", L"$$FeO", L"Fe$_2$O$_3$", L"TiO$_2$", L"Cr$_2$O$_3$", L"H$_2$O", L"$\Delta$fO$_2$", L"$$RMSE Phases", L"$$RMSE Oxides"])
+    ax3.xticklabelrotation = π/4
+    ax3.yticks = ([i for i in axes(df_cor, 2)], [L"$$T", L"$$P", L"SiO$_2$", L"A$_2$O$_3$", L"$$CaO", L"Na$_2$O", L"K$_2$O", L"$$MgO", L"$$FeO", L"Fe$_2$O$_3$", L"TiO$_2$", L"Cr$_2$O$_3$", L"H$_2$O", L"$\Delta$fO$_2$", L"$$RMSE Phases", L"$$RMSE Oxides"])
+    ax3.yticklabelrotation = π/4
+    ax3.xgridvisible = false
+    ax3.ygridvisible = false
+    display(fg1)
+
+    save("./user/figures/Figure_S7_corM_ExpVsMAGE.png", fg1, px_per_unit = 2)
     # Return
     return df_MAGE, out
 end
@@ -302,7 +378,7 @@ function create_composition_figure(df_MAGE :: DataFrame, liq_oxides :: Vector{St
         cmp = :greens
     elseif color_by_meltfrac
         coloring = vec(Float64.(df_sub[:, "liq_exp"]))
-        cb_label = L"$\Phi$ Exp. [wt-%]"
+        cb_label = L"$\Phi$ Exp. [wt.%]"
         cmp = :reds
     end
 
@@ -324,7 +400,7 @@ function create_composition_figure(df_MAGE :: DataFrame, liq_oxides :: Vector{St
         X_MAGE_start = getindex.(X_MAGE_start_anh, idx_Ox)
         xplot = X_exp_liq  .- X_exp_start
         yplot = X_MAGE_liq .- X_MAGE_start
-        ax = Axis(GL[idx_Ox][1,1], aspect = 1.0, ylabel = L"$Δ$ MAGE [wt-%]", xlabel = L"$Δ$ Exp. [wt-%]", ytickformat = "{:.1f}", xtickformat = "{:.1f}")
+        ax = Axis(GL[idx_Ox][1,1], aspect = 1.0, ylabel = L"$Δ$ MAGE [wt.%]", xlabel = L"$Δ$ Exp. [wt.%]", ytickformat = "{:.1f}", xtickformat = "{:.1f}")
         push!(axs, ax)
         sc = scatter!(axs[idx_Ox], xplot , yplot, color = coloring, colormap = cmp, label = ox_labels[idx_Ox], markersize = plt_opts.marker_size)
         ln = lines!(axs[idx_Ox], [-100, 100], [-100, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
@@ -423,23 +499,20 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
 
     # Initialize figure
     fg1    = Figure(size = plt_opts.fig_size, fontsize = plt_opts.font_size, figure_padding = plt_opts.figure_pad)
-    GL_MF1 = fg1[1, 1] = GridLayout()
-    GL_MF2 = fg1[1, 2] = GridLayout()
-    GL_DE  = fg1[2, 1] = GridLayout()
-    GL_LE  = fg1[2, 2] = GridLayout()
-    ax1 = Axis( GL_MF1[1,1], 
+    GL     = fg1[1,1] = GridLayout()
+    ax1 = Axis( GL[1,1], 
                 xlabel      = L"$T$ [°C]",
-                ylabel      = L"$\Phi$ [%]",
+                ylabel      = L"$\phi_{\text{Liq}}$ [wt.%]",
                 limits      = (680.0, 1010.0, 0.0, 100.0),
                 xticks      = [i for i in 700:100:1000],
                 title       = "MU 2019 (hydrous)",
-                ytickformat = "{:.1f}",
+                ytickformat = "{:4.1f}",
                 xtickformat = "{:.1f}",
-                aspect      = plt_opts.golden_ratio
+                aspect      = plt_opts.golden_ratio,
+                tellwidth   = true
                 )
-    ax2 = Axis( GL_MF2[1,1], 
+    ax2 = Axis( GL[1,2], 
                 xlabel      = L"$T$ [°C]",
-                ylabel      = L"$\Phi$ [%]",
                 limits      = (1020.0, 1320.0, 0.0, 100.0),
                 xticks      = [i for i in 1000:100:1300],
                 title       = "Vi 2004 (anhydrous)",
@@ -447,13 +520,14 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
                 xtickformat = "{:.1f}",
                 aspect      = plt_opts.golden_ratio
                 )
-    ax3 = Axis( GL_DE[1,1], 
-                xlabel = L"$\rho$ Exp. liq. [kg.m$^{-3}$]", 
-                ylabel = L"$\rho$ MAGE liq. [kg.m$^{-3}$]", 
+    ax3 = Axis( GL[2,1], 
+                xlabel = L"$\rho_{\text{Liq}}$ Exp. [kg.m$^{-3}$]", 
+                ylabel = L"$\rho_{\text{Liq}}$ MAGE [kg.m$^{-3}$]", 
                 aspect = 1.0,
                 limits = (2000.0, 3000.0, 2000.0, 3000.0),
                 ytickformat = "{:.1f}",
-                xtickformat = "{:.1f}"
+                xtickformat = "{:.1f}",
+                tellwidth   = true
                 )
 
     # Replace NaN in subsolidus conditions
@@ -461,16 +535,40 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
     df_sub[idNan, "liq [wt%]"] .= 0.0
 
     # Fill figure
+    liq_cum_Vi_exp     = [0.0 for _ in 1:length(df_sub[idVi2004, "liq_exp"])+1] # Create new arrays to store cumulative fractions
+    liq_cum_Vi_MAG     = [0.0 for _ in 1:length(df_sub[idVi2004, "liq [wt%]"])+1]
+    liq_cum_Vi_MAG_H2O = [0.0 for _ in 1:length(df_sub[idVi2004hy, "liq [wt%]"])+1]
+    liq_cum_Vi_exp[1]  = 1.0 # Start at 100 wt.%
+    liq_cum_Vi_MAG[1]  = 1.0
+    liq_cum_Vi_MAG_H2O[1]  = 1.0
+    for idx in eachindex(liq_cum_Vi_exp) # Loop through the data, multiply by previous fraction and store new cumulative fraction
+        if idx > 1
+            liq_cum_Vi_exp[idx] = (df_sub[idVi2004[idx-1], "liq_exp"] / 100.0 * liq_cum_Vi_exp[idx-1])
+        end
+    end
+    for idx in eachindex(liq_cum_Vi_MAG)
+        if idx > 1
+            liq_cum_Vi_MAG[idx] = (df_sub[idVi2004[idx-1], "liq [wt%]"] / 100.0 * liq_cum_Vi_MAG[idx-1])
+        end
+    end
+    for idx in eachindex(liq_cum_Vi_MAG_H2O)
+        if idx > 1
+            liq_cum_Vi_MAG_H2O[idx] = (df_sub[idVi2004hy[idx-1], "liq [wt%]"] / 100.0 * liq_cum_Vi_MAG_H2O[idx-1])
+        end
+    end
+    liq_cum_Vi_exp .*= 100.0
+    liq_cum_Vi_MAG .*= 100.0
+    liq_cum_Vi_MAG_H2O .*= 100.0
     sc1 = scatter!(ax1, df_sub[idMU2019, "T [C]"], df_sub[idMU2019, "liq_exp"],   marker = :circle, markersize = plt_opts.marker_size, label = "Exp.", color = :skyblue)
     ln1 = lines!(ax1, df_sub[idMU2019, "T [C]"], df_sub[idMU2019, "liq_exp"], color = :skyblue)
     sc2 = scatter!(ax1, df_sub[idMU2019, "T [C]"], df_sub[idMU2019, "liq [wt%]"], marker = :utriangle, markersize = plt_opts.marker_size, label = "MAGE", color = :skyblue4)
     ln2 = lines!(ax1, df_sub[idMU2019, "T [C]"], df_sub[idMU2019, "liq [wt%]"], color = :skyblue4)
-    sc3 = scatter!(ax2, df_sub[idVi2004, "T [C]"], df_sub[idVi2004, "liq_exp"],   marker = :circle, markersize = plt_opts.marker_size, color = :skyblue)
-    ln3 = lines!(ax2, df_sub[idVi2004, "T [C]"], df_sub[idVi2004, "liq_exp"], color = :skyblue)
-    sc4 = scatter!(ax2, df_sub[idVi2004, "T [C]"], df_sub[idVi2004, "liq [wt%]"], marker = :utriangle, markersize = plt_opts.marker_size, color = :skyblue4)
-    ln4 = lines!(ax2, df_sub[idVi2004, "T [C]"], df_sub[idVi2004, "liq [wt%]"], color = :skyblue4, label = "0.0 wt-% H2O")
-    sc4 = scatter!(ax2, df_sub[idVi2004hy, "T [C]"], df_sub[idVi2004hy, "liq [wt%]"], marker = :utriangle, markersize = plt_opts.marker_size, color = :skyblue4)
-    ln4 = lines!(ax2, df_sub[idVi2004hy, "T [C]"], df_sub[idVi2004hy, "liq [wt%]"], color = :skyblue4, linestyle = :dash, label = "0.5 wt-% H2O")
+    sc3 = scatter!(ax2, df_sub[idVi2004, "T [C]"], liq_cum_Vi_exp[2:end],   marker = :circle, markersize = plt_opts.marker_size, color = :skyblue)
+    ln3 = lines!(ax2, df_sub[idVi2004, "T [C]"], liq_cum_Vi_exp[2:end], color = :skyblue)
+    sc4 = scatter!(ax2, df_sub[idVi2004, "T [C]"], liq_cum_Vi_MAG[2:end], marker = :utriangle, markersize = plt_opts.marker_size, color = :skyblue4)
+    ln4 = lines!(ax2, df_sub[idVi2004, "T [C]"], liq_cum_Vi_MAG[2:end], color = :skyblue4, label = "0.0 wt.% H2O")
+    sc4 = scatter!(ax2, df_sub[idVi2004hy, "T [C]"], liq_cum_Vi_MAG_H2O[2:end], marker = :utriangle, markersize = plt_opts.marker_size, color = :skyblue4)
+    ln4 = lines!(ax2, df_sub[idVi2004hy, "T [C]"], liq_cum_Vi_MAG_H2O[2:end], color = :skyblue4, linestyle = :dash, label = "0.5 wt.% H2O")
     eb1 = errorbars!(ax3, df_sub[idhasLiqM, "density_exp_liq"], df_sub[idhasLiqM, "Liq. density [kg/m3]"], df_MAGE[idhasLiqM, "density_unc_exp_liq"], direction = :x, color = vec(Float64.(df_sub[idhasLiqM, "H2O_exp_start"])), colormap = :blues) 
     sc5 = scatter!( ax3, df_sub[idhasLiqM, "density_exp_liq"], df_sub[idhasLiqM, "Liq. density [kg/m3]"], 
                     color      = vec(Float64.(df_sub[idhasLiqM, "H2O_exp_start"])), 
@@ -482,21 +580,15 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
     axislegend(ax2, framecolor = (:gray, 0.5), position = :rb, backgroundcolor = (:white, 0.1), labelsize = 11)
 
     # Add colorbar
-    ax4 = Axis(GL_LE[1,1][1,2], aspect = 1.0)
-    hidedecorations!(ax4)
-    hidespines!(ax4)
-    Colorbar(GL_LE[1,1][1,1], sc5, vertical = true, label = L"H$_{2}$O start [wt-%]", labelsize = plt_opts.label_size)
+    Colorbar(GL[2,1][1,2], sc5, vertical = true, label = L"H$_{2}$O start [wt.%]", labelsize = plt_opts.label_size)
 
     # Align labels
-    yspace = maximum(tight_yticklabel_spacing!, [ax1, ax2, ax3])
-    xspace = maximum(tight_xticklabel_spacing!, [ax1, ax2, ax3])
-    ax1.yticklabelspace = yspace + plt_opts.tick_label_pad
-    ax2.yticklabelspace = yspace + plt_opts.tick_label_pad
-    ax3.yticklabelspace = yspace + plt_opts.tick_label_pad
-    ax1.xticklabelspace = xspace + plt_opts.tick_label_pad
-    ax2.xticklabelspace = xspace + plt_opts.tick_label_pad
-    ax3.xticklabelspace = xspace + plt_opts.tick_label_pad
-
+    yspace = maximum(tight_yticklabel_spacing!, [ax1, ax3])
+    xspace = maximum(tight_xticklabel_spacing!, [ax1, ax3])
+    ax1.yticklabelspace = yspace
+    ax3.yticklabelspace = yspace + 25
+    ax1.xticklabelspace = xspace
+    ax3.xticklabelspace = xspace
     # Add subplot label
     axs = [ax1, ax2, ax3]
     for (idx_ax, Ax) in enumerate(axs)
@@ -508,6 +600,7 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
         fontsize = plt_opts.font_size
         )
     end
+
 
     # Print figure
     display(fg1)
@@ -537,12 +630,15 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     P_Bl13  = [4.0, 9.0, 16.7]                                                                       # Set pressure and phase names
     pnames_exp  = ["ol_exp",   "opx_exp",   "cpx_exp",   "gt_exp",  "plag_exp",  "amph_exp", "sp_exp",    "ilm_exp",   "bt_exp",  "qz_exp",  "liq_exp"]
     pnames_MAGE = ["ol [wt%]", "opx [wt%]", "cpx [wt%]", "g [wt%]", "fsp [wt%]", "amp [wt%]", "spl [wt%]", "ilm [wt%]", "bi [wt%]","q [wt%]", "liq [wt%]"]
-    ph_coloring = cgrad(:bam, length(pnames_exp), categorical = true)                               # Generate color palette for different phases
+    ph_coloring = cgrad(:bilbao, length(pnames_exp), categorical = true)                               # Generate color palette for different phases
     count = 0                                                                                       # Counter to plot experiment and MAGEMin simultaneously into their corresponding axis
     normalize_exp = true                                                                            # Normalize the exp. abundance when phase not predicted by MAGEMin have to be excluded
     for (idx, pressure) in enumerate(P_Bl13)                                                        # Loop through three different pressures
         df_curr = @rsubset df_B13 :"P [kbar]" == pressure                                           # Get data at current pressure
-        baseline = []                                                                               # Initialize baseline for the area plots
+        baseline = []
+        coords = []
+        colours = []
+        lbls   = []                                                                                # Initialize baseline for the area plots
         plot_first = true                                                                           # Switch between first and all subsequent plots
         if normalize_exp
             df_curr[:, "Total"] .= 0.0
@@ -555,58 +651,138 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
         for (idx_ph, phase) in enumerate(pnames_exp)                                                # Loop through phases in the experiment ...
             if ~isempty(df_curr[:, "$phase"])                                                       # ... if current phase is present
                 if plot_first
+                    lbl = replace(phase, "_exp" => "")
+                    lbl == "amph" ? lbl = "amp" : nothing
+                    lbl == "plag" ? lbl = "pl" : nothing
+                    lbl == "gt" ? lbl = "grt" : nothing
+                    lbl == "sp" ? lbl = "spl" : nothing
                     phase_abund = df_curr[:, "$phase"]                                              # ... get current abundance
                     phase_abund[phase_abund .== NaN] .= 0.0                                         # ... remove NaNs
+                    sum(phase_abund) == 0.0 ? continue : nothing
                     normalize_exp ? phase_abund ./= df_curr[:, "Total"] ./ 100.0 : nothing          # ... normalize if required (attention you have to divide by 100.0 to get %)
                     band!(axs_ph[idx + count], df_curr[:, "T [C]"], 0.0 .* df_curr[:, "T [C]"], phase_abund , color = ph_coloring[idx_ph])      # Plot area
                     plot_first = false                                                              # ... switch of baseline = 0.0
+                    idxMax = findfirst(x -> x == maximum(phase_abund), phase_abund)
+                    xtxt = df_curr[idxMax, "T [C]"]
+                    ytxt = (maximum(phase_abund)) / 2.0 - 2.5
+                    phase == "liq_exp" ? xtxt = 1050.0 : nothing
+                    phase == "sp_exp" ? xtxt = 1050.0 : nothing
+                    phase == "sp_exp" ? ytxt = 45.0 : nothing
+                    phase == "cpx_exp" && pressure == 16.7 ? xtxt = 1150.0 : nothing
+                    push!(lbls, lbl)
+                    push!(coords, (xtxt, ytxt))
+                    if ph_coloring[idx_ph].r > 0.6
+                        push!(colours, :black)
+                    else
+                        push!(colours, :white)
+                    end
                     baseline = phase_abund                                                          # ... store new baseline
                 else
+                    lbl = replace(phase, "_exp" => "")
+                    lbl == "amph" ? lbl = "amp" : nothing
+                    lbl == "plag" ? lbl = "pl" : nothing
+                    lbl == "gt" ? lbl = "grt" : nothing
+                    lbl == "sp" ? lbl = "spl" : nothing
                     phase_abund = df_curr[:, "$phase"]                                              # See last comments above
                     phase_abund[phase_abund .== NaN] .= 0.0
+                    sum(phase_abund) == 0.0 ? continue : nothing
                     normalize_exp ? phase_abund ./= df_curr[:, "Total"] ./ 100.0 : nothing
                     band!(axs_ph[idx + count], df_curr[:, "T [C]"], baseline, baseline .+ phase_abund, color = ph_coloring[idx_ph])
+                    idxMax = findfirst(x -> x == maximum(phase_abund .+ baseline), phase_abund .+ baseline)
+                    xtxt = df_curr[idxMax, "T [C]"]
+                    ytxt = (maximum(phase_abund .+ baseline) + maximum(baseline)) / 2.0 - 2.5
+                    phase == "liq_exp" ? xtxt = 1025.0 : nothing
+                    phase == "sp_exp" ? xtxt = 1075.0 : nothing
+                    phase == "cpx_exp" && pressure == 16.7 ? xtxt = 1150.0 : nothing
+                    phase == "sp_exp" ? ytxt = 35.0 : nothing
+                    phase == "liq_exp" && pressure == 16.7 ? xtxt = 1100.0 : nothing
+                    pressure == 4.0 && phase == "sp_exp" ? (xtxt = 1110.0; ytxt = 5.0) : nothing
+                    push!(lbls, lbl)
+                    push!(coords, (xtxt, ytxt))
+                    if ph_coloring[idx_ph].r > 0.6
+                        push!(colours, :black)
+                    else
+                        push!(colours, :white)
+                    end
                     baseline .+= phase_abund                                                        # ... update baseline
                 end
             end
         end
+        for ilbl in eachindex(lbls)
+            text!(axs_ph[idx + count], lbls[ilbl], position=(coords[ilbl][1], coords[ilbl][2]), color = colours[ilbl])
+        end
         xlims!(axs_ph[idx + count], low = minimum(df_curr[:, "T [C]"]), high = maximum(df_curr[:, "T [C]"]))
         ylims!(axs_ph[idx + count], low = 0.0, high = 100.0)
         txt_str = "Exp. @ $(pressure) kbar"                                                            # Add label to phase plots
-        text!(axs_ph[idx + count], maximum(df_curr[:, "T [C]"]) - 10.0, 90.0, text = txt_str, color = :white, align = (:right, :baseline), justification = :right)
+        text!(axs_ph[idx + count], maximum(df_curr[:, "T [C]"]) - 10.0, 90.0, text = txt_str, color = :black, align = (:right, :baseline), justification = :right)
         baseline   = []                                                                             # Reset baseline 
-        plot_first = true                                                                           # Reset switch
+        plot_first = true
+        coords = []
+        colours = []
+        lbls   = []                                                                           # Reset switch
         count += 1                                                                                  # Update counter to now plot in the MAGEMin axis
         for (idx_ph, phase) in enumerate(pnames_MAGE)                                                   # AS ABOVE just now we loop through MAGEMin data
             if ~isempty(df_curr[:, "$phase"])
                 if plot_first
+                    lbl = replace(phase, " [wt%]" => "")
+                    lbl == "sp"
                     phase_abund = df_curr[:, "$phase"]
                     phase_abund[isnan.(phase_abund)] .= 0.0
+                    sum(phase_abund) == 0.0 ? continue : nothing
                     band!(axs_ph[idx + count], df_curr[:, "T [C]"], 0.0 .* df_curr[:, "T [C]"], phase_abund, color = ph_coloring[idx_ph])
                     plot_first = false
+                    idxMax = findfirst(x -> x == maximum(phase_abund), phase_abund)
+                    xtxt = df_curr[idxMax, "T [C]"]
+                    pressure == 16.7 ? xtxt = 1150.0 : nothing
+                    ytxt = (maximum(phase_abund)) / 2.0 - 2.5
+                    push!(lbls, lbl)
+                    push!(coords, (xtxt, ytxt))
+                    if ph_coloring[idx_ph].r > 0.6
+                        push!(colours, :black)
+                    else
+                        push!(colours, :white)
+                    end
                     baseline = phase_abund
                 else
+                    lbl = replace(phase, " [wt%]" => "")
+                    lbl == "fsp" ? lbl = "pl" : nothing
+                    lbl == "g" ? lbl = "grt" : nothing
                     phase_abund = df_curr[:, "$phase"]
                     phase_abund[isnan.(phase_abund)] .= 0.0
+                    sum(phase_abund) == 0.0 ? continue : nothing
                     band!(axs_ph[idx + count], df_curr[:, "T [C]"], baseline, baseline .+ phase_abund, color = ph_coloring[idx_ph])
+                    idxMax = findfirst(x -> x == maximum(phase_abund .+ baseline), phase_abund .+ baseline)
+                    xtxt = df_curr[idxMax, "T [C]"]
+                    pressure == 16.7 ? xtxt = 1100.0 : nothing
+                    ytxt = (maximum(phase_abund .+ baseline) + maximum(baseline)) / 2.0 - 2.5
+                    push!(lbls, lbl)
+                    push!(coords, (xtxt, ytxt))
+                    if ph_coloring[idx_ph].r > 0.6
+                        push!(colours, :black)
+                    else
+                        push!(colours, :white)
+                    end
                     baseline .+= phase_abund
                 end
             end
         end
+        for ilbl in eachindex(lbls)
+            text!(axs_ph[idx + count], lbls[ilbl], position=(coords[ilbl][1], coords[ilbl][2]), color = colours[ilbl])
+        end
         xlims!(axs_ph[idx + count], low = minimum(df_curr[:, "T [C]"]), high = maximum(df_curr[:, "T [C]"]))
         ylims!(axs_ph[idx + count], low = 0.0, high = 100.0)
         txt_str = "MAGE @ $(pressure) kbar"                                                                        # Add label to phase plots
-        text!(axs_ph[idx + count], maximum(df_curr[:, "T [C]"]) - 10.0, 90.0, text = txt_str, color = :white, align = (:right, :baseline), justification = :right)
+        text!(axs_ph[idx + count], maximum(df_curr[:, "T [C]"]) - 10.0, 90.0, text = txt_str, color = :black, align = (:right, :baseline), justification = :right)
     end
 
     # Add legend
     leg_str_ph = [replace("$(phase)", "_exp" => "") for phase in pnames_exp]
     leg_rects  = [PolyElement(color = color, strokecolor = :black, strokewidth = 1.0) for color in ph_coloring]
-    Legend(fg1[1,1:2][2,1], leg_rects, leg_str_ph, orientation = :horizontal, framevisible = false, nbanks = 2, labelsize = plt_opts.label_size, halign = :left, valign = :top)
+    # Legend(fg1[1,1:2][2,1], leg_rects, leg_str_ph, orientation = :horizontal, framevisible = false, nbanks = 2, labelsize = plt_opts.label_size, halign = :left, valign = :top)
     
     # Add axis labels
-    axs_ph[1].ylabel = L"$$Abundance [wt-%]"
-    axs_ph[2].ylabel = L"$$Abundance [wt-%]"
+    axs_ph[1].ylabel = L"$$Abundance [wt.%]"
+    axs_ph[2].ylabel = L"$$Abundance [wt.%]"
     axs_ph[2].xlabel = L"$T$ [°C]"
     axs_ph[4].xlabel = L"$T$ [°C]"
     axs_ph[6].xlabel = L"$T$ [°C]"
@@ -619,9 +795,10 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
         offset = (4, -2), 
         font = :bold, 
         fontsize = plt_opts.font_size,
-        color = :white
+        color = :black
         )
     end
+
     # Print figure
     display(fg1)
     if !isdir("./user/figures")
@@ -690,7 +867,7 @@ function Blatter2013_temperature_vsOxide(df :: DataFrame, plt_opts :: makie_plot
                 axs[idx_Ox].xticklabelsvisible = false
             end
             axs[idx_Ox].ytickformat = "{:.1f}"
-            axs[idx_Ox].ylabel = L"$$Abundance [wt-%]"
+            axs[idx_Ox].ylabel = L"$$Abundance [wt.%]"
         end
     end
 
@@ -737,7 +914,7 @@ function Blatter2013_temperature_vsOxide(df :: DataFrame, plt_opts :: makie_plot
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_A4_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
+    save("./user/figures/Figure_S2b_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -765,7 +942,7 @@ function create_experimentBiases_figure(plt_opts :: makie_plot_options)
 
     # Fill figure
     density_map!(GL1, df[:, "T_C"], df[:, "P_kbar"]; colormap = Reverse(:bilbao), σx = σT, σy = σP, npts = npts, marg = :hist, bar_color = :salmon, xlabel = L"$T$ [°C]", ylabel = L"$P$ [kbar]")
-    density_map!(GL2, df[:, "SiO2_start"], df[:, "melt_fraction"]; colormap = Reverse(:bilbao), σx = σSi, σy = σϕ, npts = npts, marg = :hist, xlabel = L"SiO$_2$ [wt-%]", ylabel = L"$\phi$ [%]")
+    density_map!(GL2, df[:, "SiO2_start"], df[:, "melt_fraction"]; colormap = Reverse(:bilbao), σx = σSi, σy = σϕ, npts = npts, marg = :hist, xlabel = L"SiO$_2$ [wt.%]", ylabel = L"$\phi_{\text{Liq}}$ [wt.%]")
 
     axs1 = [contents(contents(GL1)[i])[1] for i in 1:3]
     axs2 = [contents(contents(GL2)[i])[1] for i in 1:3]
@@ -1141,67 +1318,80 @@ function create_mineralComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     fg1 = Figure(size = plt_opts.fig_size, fontsize = plt_opts.font_size, figure_padding = plt_opts.figure_pad)
     ax1 = Axis(
         fg1[1,1], aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
+        ylabel = L"$$MAGE [wt.%]",
         limits = (0, 65, 0, 65),
         xticks = [0, 20, 40, 60], yticks = [0, 20, 40, 60]
     )
     ax2 = Axis(
         fg1[1,2], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
         limits = (0, 45, 0, 45),
         xticks = [0, 20, 40], yticks = [0, 20, 40]
     )
     ax3 = Axis(
         fg1[1,3], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
         limits = (0, 65, 0, 65),
         xticks = [0, 20, 40, 60], yticks = [0, 20, 40, 60]
     )
     ax4 = Axis(
         fg1[1,4], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
         limits = (0, 25, 0, 25),
         xticks = [0, 10, 20], yticks = [0, 10, 20]
     )
     ax5 = Axis(
         fg1[2,1], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
+        xlabel = L"$$Exp. [wt.%]", ylabel = L"$$MAGE [wt.%]",
         limits = (0, 65, 0, 65),
         xticks = [0, 20, 40, 60], yticks = [0, 20, 40, 60]
     )
     ax6 = Axis(
         fg1[2,2], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
+        xlabel = L"$$Exp. [wt.%]",
         limits = (0, 100, 0, 100),
         xticks = [0, 25, 50, 75, 100], yticks = [0, 25, 50, 75, 100]
     )
     ax7 = Axis(
         fg1[2,3], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
+        xlabel = L"$$Exp. [wt.%]",
         limits = (0, 4, 0,4),
         xticks = [0, 2, 4], yticks = [0, 2, 4]
     )
     ax8 = Axis(
         fg1[2,4], 
         aspect = 1.0,
-        xlabel = L"$$Exp. [wt-%]", ylabel = L"$$MAGE [wt-%]",
+        xlabel = L"$$Exp. [wt.%]",
         limits = (0, 6, 0, 6),
         xticks = [0, 2, 4, 6], yticks = [0, 2, 4, 6]
     )
-    scatter!(ax1, df[:, :("plag_exp")], df[:, :("fsp [wt%]")], label = L"$$plag")
+    idx = findall(x -> isnan.(x), df[:, :("fsp [wt%]")])
+    df[idx, :("fsp [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("ol [wt%]")])
+    df[idx, :("ol [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("amp [wt%]")])
+    df[idx, :("amp [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("opx [wt%]")])
+    df[idx, :("opx [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("cpx [wt%]")])
+    df[idx, :("cpx [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("liq [wt%]")])
+    df[idx, :("liq [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("ilm [wt%]")])
+    df[idx, :("ilm [wt%]")] .= 0.0
+    idx = findall(x -> isnan.(x), df[:, :("spl [wt%]")])
+    df[idx, :("spl [wt%]")] .= 0.0
+    scatter!(ax1, df[:, :("plag_exp")], df[:, :("fsp [wt%]")], label = L"$$pl")
     scatter!(ax2, df[:, :("ol_exp")],   df[:, :("ol [wt%]")], label = L"$$ol")
-    scatter!(ax3, df[:, :("amph_exp")], df[:, :("amp [wt%]")], label = L"$$amph")
+    scatter!(ax3, df[:, :("amph_exp")], df[:, :("amp [wt%]")], label = L"$$amp")
     scatter!(ax4, df[:, :("opx_exp")],  df[:, :("opx [wt%]")], label = L"$$opx")
     scatter!(ax5, df[:, :("cpx_exp")],  df[:, :("cpx [wt%]")], label = L"$$cpx")
     scatter!(ax6, df[:, :("liq_exp")],  df[:, :("liq [wt%]")], label = L"$$liq")
     scatter!(ax7, df[:, :("ilm_exp")],  df[:, :("ilm [wt%]")], label = L"$$ilm")
-    scatter!(ax8, df[:, :("sp_exp")],   df[:, :("spl [wt%]")], label = L"$$sp")
+    scatter!(ax8, df[:, :("sp_exp")],   df[:, :("spl [wt%]")], label = L"$$spl")
     ln1 = lines!(ax1, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
     ln2 = lines!(ax2, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)
     ln3 = lines!(ax3, [-1, 100], [-1, 100], color = :goldenrod1, linewidth = plt_opts.line_width)

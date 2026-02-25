@@ -64,7 +64,7 @@ const ϵ_flu = 1e-3
 
     # Initialize input and output matrices
     input  = zeros(Float32, 10, 1)
-    output = zeros(Float32, 15, 1)
+    output = zeros(Float32, 26, 1)
 
     # Loop through each composition and create phase diagram
     for (idx_X) in axes(df, 1)
@@ -92,32 +92,44 @@ const ϵ_flu = 1e-3
         Finalize_MAGEMin(data)
 
         # Postprocess output
-        npts   = length(out)
-        out_curr = Matrix{Float32}(undef, 15, npts)
-        in_curr  = Matrix{Float32}(undef, 10, npts)
-        T_out  = Vector{Float64}(undef, npts)
-        P_out  = Vector{Float64}(undef, npts)
-        Φ_Liq  = Vector{Float64}(undef, npts)
-        Φ_Flu  = Vector{Float64}(undef, npts)
-        ρ_Liq  = Vector{Float64}(undef, npts)
-        ρ_Sys  = Vector{Float64}(undef, npts)
-        ρ_Flu  = Vector{Float64}(undef, npts)
-        Si_Liq = Vector{Float64}(undef, npts)
-        Al_Liq = Vector{Float64}(undef, npts)
-        Ca_Liq = Vector{Float64}(undef, npts)
-        Mg_Liq = Vector{Float64}(undef, npts)
-        Fe_Liq = Vector{Float64}(undef, npts)
-        KN_Liq = Vector{Float64}(undef, npts)
-        Ti_Liq = Vector{Float64}(undef, npts)
-        H_Liq  = Vector{Float64}(undef, npts)
+        npts     = length(out)
+        out_curr = Matrix{Float64}(undef, 26, npts)
+        in_curr  = Matrix{Float64}(undef, 10, npts)
+        T_out    = Vector{Float64}(undef, npts)
+        P_out    = Vector{Float64}(undef, npts)
+        Φ_Liq    = Vector{Float64}(undef, npts)
+        Φ_Flu    = Vector{Float64}(undef, npts)
+        Φ_Sol    = Vector{Float64}(undef, npts)
+        ρ_Liq    = Vector{Float64}(undef, npts)
+        ρ_Sys    = Vector{Float64}(undef, npts)
+        ρ_Flu    = Vector{Float64}(undef, npts)
+        ρ_Sol    = Vector{Float64}(undef, npts)
+        Si_Liq   = Vector{Float64}(undef, npts)
+        Al_Liq   = Vector{Float64}(undef, npts)
+        Ca_Liq   = Vector{Float64}(undef, npts)
+        Mg_Liq   = Vector{Float64}(undef, npts)
+        Fe_Liq   = Vector{Float64}(undef, npts)
+        KN_Liq   = Vector{Float64}(undef, npts)
+        Ti_Liq   = Vector{Float64}(undef, npts)
+        H_Liq    = Vector{Float64}(undef, npts)
+        Si_Sol   = Vector{Float64}(undef, npts)
+        Al_Sol   = Vector{Float64}(undef, npts)
+        Ca_Sol   = Vector{Float64}(undef, npts)
+        Mg_Sol   = Vector{Float64}(undef, npts)
+        Fe_Sol   = Vector{Float64}(undef, npts)
+        KN_Sol   = Vector{Float64}(undef, npts)
+        Ti_Sol   = Vector{Float64}(undef, npts)
+        H_Sol    = Vector{Float64}(undef, npts)
         for (idx_out, Out) in enumerate(out)
             T_out[idx_out] = Out.T_C
             P_out[idx_out] = Out.P_kbar
             ρ_Liq[idx_out] = Out.rho_M
             ρ_Sys[idx_out] = Out.rho
             ρ_Flu[idx_out] = Out.rho_F
+            ρ_Sol[idx_out] = Out.rho_S
             Φ_Liq[idx_out] = Out.frac_M_wt
             Φ_Flu[idx_out] = Out.frac_F_wt
+            Φ_Sol[idx_out] = Out.frac_S_wt
             isnan(Out.bulk_M_wt[1]) ? Si_Liq[idx_out] = 0.0 : Si_Liq[idx_out] = Out.bulk_M_wt[1]
             isnan(Out.bulk_M_wt[1]) ? Al_Liq[idx_out] = 0.0 : Al_Liq[idx_out] = Out.bulk_M_wt[2]
             isnan(Out.bulk_M_wt[1]) ? Ca_Liq[idx_out] = 0.0 : Ca_Liq[idx_out] = Out.bulk_M_wt[3]
@@ -126,40 +138,61 @@ const ϵ_flu = 1e-3
             isnan(Out.bulk_M_wt[1]) ? KN_Liq[idx_out] = 0.0 : KN_Liq[idx_out] = Out.bulk_M_wt[6] + Out.bulk_M_wt[7]
             isnan(Out.bulk_M_wt[1]) ? Ti_Liq[idx_out] = 0.0 : Ti_Liq[idx_out] = Out.bulk_M_wt[8]
             isnan(Out.bulk_M_wt[1]) ? H_Liq[idx_out ] = 0.0 : H_Liq[idx_out ] = Out.bulk_M_wt[11]
+            isnan(Out.bulk_S_wt[1]) ? Si_Sol[idx_out] = 0.0 : Si_Sol[idx_out] = Out.bulk_S_wt[1]
+            isnan(Out.bulk_S_wt[1]) ? Al_Sol[idx_out] = 0.0 : Al_Sol[idx_out] = Out.bulk_S_wt[2]
+            isnan(Out.bulk_S_wt[1]) ? Ca_Sol[idx_out] = 0.0 : Ca_Sol[idx_out] = Out.bulk_S_wt[3]
+            isnan(Out.bulk_S_wt[1]) ? Mg_Sol[idx_out] = 0.0 : Mg_Sol[idx_out] = Out.bulk_S_wt[4]
+            isnan(Out.bulk_S_wt[1]) ? Fe_Sol[idx_out] = 0.0 : Fe_Sol[idx_out] = Out.bulk_S_wt[5]
+            isnan(Out.bulk_S_wt[1]) ? KN_Sol[idx_out] = 0.0 : KN_Sol[idx_out] = Out.bulk_S_wt[6] + Out.bulk_S_wt[7]
+            isnan(Out.bulk_S_wt[1]) ? Ti_Sol[idx_out] = 0.0 : Ti_Sol[idx_out] = Out.bulk_S_wt[8]
+            isnan(Out.bulk_S_wt[1]) ? H_Sol[idx_out ] = 0.0 : H_Sol[idx_out ] = Out.bulk_S_wt[11]
         end
 
         # Create melt binary
+        Solid = deepcopy(Φ_Sol)
         Melt  = deepcopy(Φ_Liq)
         Fluid = deepcopy(Φ_Flu)
         Melt[Φ_Liq   .> 0.0] .= 1.0
         Fluid[Φ_Flu  .> 0.0] .= 1.0
+        Solid[Φ_Sol  .> 0.0] .= 1.0
 
         # Store data points
-        in_curr[1,  :]  .= Float32.(T_out)
-        in_curr[2,  :]  .= Float32.(P_out)
-        in_curr[3,  :]  .= Float32.(out[1].bulk_wt[1])
-        in_curr[4,  :]  .= Float32.(out[1].bulk_wt[2])
-        in_curr[5,  :]  .= Float32.(out[1].bulk_wt[3])
-        in_curr[6,  :]  .= Float32.(out[1].bulk_wt[4])
-        in_curr[7,  :]  .= Float32.(out[1].bulk_wt[5])
-        in_curr[8,  :]  .= Float32.(out[1].bulk_wt[6] + out[1].bulk_wt[7])
-        in_curr[9,  :]  .= Float32.(out[1].bulk_wt[8])
-        in_curr[10, :]  .= Float32.(out[1].bulk_wt[11])
-        out_curr[1, :]  .= Int32.(  Melt[:]  )
-        out_curr[2, :]  .= Int32.(  Fluid[:] )
-        out_curr[3, :]  .= Float32.(Si_Liq[:])
-        out_curr[4, :]  .= Float32.(Al_Liq[:])
-        out_curr[5, :]  .= Float32.(Ca_Liq[:])
-        out_curr[6, :]  .= Float32.(Mg_Liq[:])
-        out_curr[7, :]  .= Float32.(Fe_Liq[:])
-        out_curr[8, :]  .= Float32.(KN_Liq[:])
-        out_curr[9, :]  .= Float32.(Ti_Liq[:])
-        out_curr[10, :] .= Float32.(H_Liq[:] )
-        out_curr[11, :] .= Float32.(Φ_Liq[:] )
-        out_curr[12, :] .= Float32.(Φ_Flu[:] )
-        out_curr[13, :] .= Float32.(ρ_Sys[:] )
-        out_curr[14, :] .= Float32.(ρ_Liq[:] )
-        out_curr[15, :] .= Float32.(ρ_Flu[:] )
+        in_curr[1,  :]  .= T_out
+        in_curr[2,  :]  .= P_out
+        in_curr[3,  :]  .= out[1].bulk_wt[1]
+        in_curr[4,  :]  .= out[1].bulk_wt[2]
+        in_curr[5,  :]  .= out[1].bulk_wt[3]
+        in_curr[6,  :]  .= out[1].bulk_wt[4]
+        in_curr[7,  :]  .= out[1].bulk_wt[5]
+        in_curr[8,  :]  .= out[1].bulk_wt[6] + out[1].bulk_wt[7]
+        in_curr[9,  :]  .= out[1].bulk_wt[8]
+        in_curr[10, :]  .= out[1].bulk_wt[11]
+        out_curr[1, :]  .= Melt[:] 
+        out_curr[2, :]  .= Fluid[:]
+        out_curr[3, :]  .= Si_Liq[:]
+        out_curr[4, :]  .= Al_Liq[:]
+        out_curr[5, :]  .= Ca_Liq[:]
+        out_curr[6, :]  .= Mg_Liq[:]
+        out_curr[7, :]  .= Fe_Liq[:]
+        out_curr[8, :]  .= KN_Liq[:]
+        out_curr[9, :]  .= Ti_Liq[:]
+        out_curr[10, :] .= H_Liq[:] 
+        out_curr[11, :] .= Φ_Liq[:] 
+        out_curr[12, :] .= Φ_Flu[:] 
+        out_curr[13, :] .= ρ_Sys[:] 
+        out_curr[14, :] .= ρ_Liq[:] 
+        out_curr[15, :] .= ρ_Flu[:] 
+        out_curr[16, :] .= Solid[:] 
+        out_curr[17, :] .= Si_Sol[:]
+        out_curr[18, :] .= Al_Sol[:]
+        out_curr[19, :] .= Ca_Sol[:]
+        out_curr[20, :] .= Mg_Sol[:]
+        out_curr[21, :] .= Fe_Sol[:]
+        out_curr[22, :] .= KN_Sol[:]
+        out_curr[23, :] .= Ti_Sol[:]
+        out_curr[24, :] .= H_Sol[:] 
+        out_curr[25, :] .= Φ_Sol[:] 
+        out_curr[26, :] .= ρ_Sol[:] 
         
         # Add to global storage
         output = hcat(output, out_curr)
@@ -177,10 +210,11 @@ const ϵ_flu = 1e-3
 end
 
 function TrainIgneous(;
-    create_data      :: Bool = false,
-    data_file        :: Union{String, Nothing} = nothing,
-    log_transform    :: Bool = false,
-    DatType          :: Type = Float32
+    create_data     :: Bool = false,
+    create_data_fig :: Bool = false,
+    data_file       :: Union{String, Nothing} = nothing,
+    log_transform   :: Bool = false,
+    DatType         :: Type = Float32
 )
 
     # Randomness
@@ -217,7 +251,7 @@ function TrainIgneous(;
     batchsizes  = [1024] #[16384, 4096, 1024] -- We had to perform the cross validation per batch size in separate sessions for technical reasons
     
     # Load original input and output data
-    input, output = MAGEMin_MLPs.LoadData(data_path = "./data/surrogate_model/SynGEOROC_training_data_5iniLev_2sub_lev_45.0_71.0wtSi_650.0_1300.0C_0.1_10.0kbar.jld2")
+    input, output = MAGEMin_MLPs.LoadData(data_path = "./user/zenodo_data/SynGEOROC_training_data_5iniLev_2sub_lev_45.0_71.0wtSi_650.0_1300.0C_0.1_10.0kbar.jld2")
 
     # Prepare the data -- shuffling is crucial!
     Ndpts        = size(output, 2)
@@ -239,6 +273,101 @@ function TrainIgneous(;
         @printf "Min feat = %.5g \t Max feat = %.5g\n" minimum(output_ord[i, :]) maximum(output_ord[i, :])
     end
 
+    if create_data_fig
+        # Output features
+        spl_labels = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o"]
+        fg1 = Figure(size = (1200, 800))
+        axs1 = [Axis(fg1[row, col], ylabel =L"$$No. pts", aspect = 1.681) for row in 1:4 for col in 1:4]
+        for idx in axes(output_ord, 1)
+            out = deepcopy(output_ord[idx, :])
+            (idx > 2 && idx < 11 || idx == 12 || idx == 13) ? out .*= 100.0 : nothing
+            sc = hist!(axs1[idx], out)
+        end
+        axs1[1].xlabel = L"$$Liquid Binary [ ]"
+        axs1[2].xlabel = L"$$Fluid Binary [ ]"
+        axs1[3].xlabel = L"SiO$_2^{\text{Liq}}$ [wt.%]"
+        axs1[4].xlabel = L"Al$_2$O$_3^{\text{Liq}}$ [wt.%]"
+        axs1[5].xlabel = L"CaO$^{\text{Liq}}$ [wt.%]"
+        axs1[6].xlabel = L"(Na$_2$O + K$_2$O)$^{\text{Liq}}$ [wt.%]"
+        axs1[7].xlabel = L"MgO$^{\text{Liq}}$ [wt.%]"
+        axs1[8].xlabel = L"FeO$^{\text{Liq}}$ [wt.%]"
+        axs1[9].xlabel = L"TiO$_2^{\text{Liq}}$ [wt.%]"
+        axs1[10].xlabel = L"H$_2$O$^{\text{Liq}}$ [wt.%]"
+        axs1[11].xlabel = L"$\rho^{\text{Sys}}$ [kg.m$^{-3}$]"
+        axs1[12].xlabel = L"$\phi^{\text{Liq}}$ [wt.%]"
+        axs1[13].xlabel = L"$\phi^{\text{Flu}}$ [wt.%]"
+        axs1[14].xlabel = L"$\rho^{\text{Liq}}$ [kg.m$^{-3}$]"
+        axs1[15].xlabel = L"$\rho^{\text{Flu}}$ [kg.m$^{-3}$]"
+        axs1[1].yticks =([3e5, 6e5, 9e5], ["300k", "600k", "900k"])
+        axs1[1].xticks =([0, 1], ["0", "1"])
+        axs1[2].yticks =([3e5, 6e5, 9e5], ["300k", "600k", "900k"])
+        axs1[2].xticks =([0, 1], ["0", "1"])
+        axs1[3].yticks =([1e5, 2e5], ["100k", "200k"])
+        axs1[3].xticks = 0.0:15.0:90.0
+        axs1[4].yticks =([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        axs1[4].xticks = 0.0:7:90.0
+        axs1[5].yticks =([2e5, 4e5, 6e5], ["200k", "400k", "600k"])
+        axs1[5].xticks = 0.0:5.0:90
+        axs1[6].yticks =([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        axs1[7].yticks =([2e5, 4e5, 6e5], ["200k", "400k", "600k"])
+        axs1[7].xticks = 0.0:5.0:90.0
+        axs1[8].yticks =([2e5, 4e5, 6e5], ["200k", "400k", "600k"])
+        axs1[9].xticks = 0.0:2.0:90.0
+        axs1[9].yticks =([2e5, 4e5, 6e5], ["200k", "400k", "600k"])
+        axs1[10].yticks =([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        axs1[11].yticks =([5e4, 1.0e5], ["50k", "100k"])
+        axs1[12].yticks =([6e4, 1.2e5], ["60k", "120k"])
+        axs1[13].yticks =([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        axs1[14].yticks =([3e5, 6e5, 9e5], ["300k", "600k", "900k"])
+        axs1[15].yticks =([3e5, 6e5, 9e5], ["300k", "600k", "900k"])
+        for (idx, Ax) in enumerate(axs1[1:15])
+            text!(Ax, spl_labels[idx], position = (0.05, 0.9), space = :relative)
+        end
+        hidedecorations!(axs1[16])
+        hidespines!(axs1[16])
+        display(fg1)
+        save("./user/figures/Figure_S1b_Feature_distr_out.png", fg1, px_per_unit = 4)
+
+        # Input features
+        spl_labels = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+        fg2 = Figure(size = (1200, 600))
+        axs2 = [Axis(fg2[row, col], ylabel =L"$$No. pts", aspect = 1.681) for row in 1:3 for col in 1:4]
+        for idx in axes(input_shuff, 1)
+            inp = deepcopy(input_shuff[idx, :])
+            idx > 2 ? inp .*= 100.0 : nothing
+            sc = hist!(axs2[idx], inp)
+        end
+        axs2[1].xlabel = L"$T$ [°C]"
+        axs2[2].xlabel = L"$P$ [kbar]"
+        axs2[3].xlabel = L"SiO$_2^{\text{Sys}}$ [wt.%]"
+        axs2[4].xlabel = L"Al$_2$O$_3^{\text{Sys}}$ [wt.%]"
+        axs2[5].xlabel = L"CaO$^{\text{Sys}}$ [wt.%]"
+        axs2[6].xlabel = L"MgO$^{\text{Sys}}$ [wt.%]"
+        axs2[7].xlabel = L"FeO$^{\text{Sys}}$ [wt.%]"
+        axs2[8].xlabel = L"(Na$_2$O + K$_2$O)$^{\text{Sys}}$ [wt.%]"
+        axs2[9].xlabel = L"TiO$_2^{\text{Sys}}$ [wt.%]"
+        axs2[10].xlabel = L"H$_2$O$^{\text{Sys}}$ [wt.%]"
+        axs2[1].yticks = ([5e4, 1e5], ["50k", "100k"])
+        axs2[2].yticks = ([5e4, 1e5], ["50k", "100k"])
+        axs2[3].yticks = ([5e4, 1e5, 1.5e5], ["50k", "100k", "150k"])
+        axs2[4].yticks = ([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        axs2[5].yticks = ([1e5, 2e5], ["100k", "200k"])
+        axs2[6].yticks = ([1e5, 2e5], ["100k", "200k"])
+        axs2[7].yticks = ([5e4, 1e5, 1.5e5], ["50k", "100k", "150k"])
+        axs2[8].yticks = ([5e4, 1e5, 1.5e5], ["50k", "100k", "150k"])
+        axs2[9].yticks = ([1e5, 2e5], ["100k", "200k"])
+        axs2[10].yticks = ([1e5, 2e5, 3e5], ["100k", "200k", "300k"])
+        for (idx, Ax) in enumerate(axs2[1:10])
+            text!(Ax, spl_labels[idx], position = (0.05, 0.9), space = :relative)
+        end
+        hidedecorations!(axs2[11])
+        hidespines!(axs2[11])
+        hidedecorations!(axs2[12])
+        hidespines!(axs2[12])
+        display(fg2)
+        save("./user/figures/Figure_S1a_Feature_distr_in.png", fg2, px_per_unit = 4)
+    end
+    
     # Send to device
     dev     = cdev
     dev_str = "CPU"
@@ -275,4 +404,4 @@ function TrainIgneous(;
 end
 
 # Hint: do not set log_fluid = true in combination with Train_Igneous_v3.jl. Network architecture is incompatible.
-TrainIgneous(; create_data = false, data_file ="./data/surrogate_model/test_data.csv", log_transform = true, DatType = Float32);
+TrainIgneous(; create_data = false, create_data_fig = true, data_file ="./data/surrogate_model/test_data.csv", log_transform = true, DatType = Float32);

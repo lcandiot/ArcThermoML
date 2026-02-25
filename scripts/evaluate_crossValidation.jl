@@ -121,7 +121,6 @@ const DatType = Float64
     ax1   = Axis(
         gl1[1,1], 
         aspect = 1.0,
-        xlabel = L"$$Layers [ ]",
         ylabel = L"$$Neurons [ ]",
         title = L"$$batch size = 1024",
         xticks = nLayers,
@@ -130,7 +129,6 @@ const DatType = Float64
     ax2   = Axis(
         gl1[1,2],
         aspect = 1.0,
-        xlabel = L"$$Layers [ ]",
         title = L"$$batch size = 4096",
         xticks = nLayers,
         yticks = nNeurons
@@ -138,7 +136,6 @@ const DatType = Float64
     ax3   = Axis(
         gl1[1,3],
         aspect = 1.0,
-        xlabel = L"$$Layers [ ]",
         title = L"$$batch size = 16384",
         xticks = nLayers,
         yticks = nNeurons
@@ -304,7 +301,7 @@ const DatType = Float64
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save_fig ? save("./user/figures/Figure_8_MLP_crossval_results.png", f, px_per_unit = 1) : nothing
+    save_fig ? save("./user/figures/Figure_8_MLP_crossval_results.png", f, px_per_unit = 4) : nothing
 
     # Return
     return nothing
