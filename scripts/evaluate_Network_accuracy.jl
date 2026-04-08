@@ -269,15 +269,15 @@ const DatType = Float64
         for (idx_Ax, Ax) in enumerate(axs)
             idx_Ax > length(labels) -1 ? break : nothing
             if idx_Ax < 14
-                sc = scatter!(Ax, y_test[idx_Ax + 2, :], ŷ[idx_Ax + 2, :], colormap = cmap, color = :gray, alpha = α)
+                sc = scatter!(Ax, y_test[idx_Ax + 2, :], ŷ[idx_Ax + 2, :], colormap = cmap, color = :gray, alpha = α, rasterize = 7.5)
                 push!(scs, sc)
             end
             ln = lines!(Ax, [1e-5, 10000], [1e-5, 10000], linewidth = 3, color = :goldenrod4)
         end
-        sc = scatter!(axs[14], ρ_sol_true, ρ_sol_pred, colormap = cmap, color = vec(y_test[12, :]), alpha = 1.0)
+        sc = scatter!(axs[14], ρ_sol_true, ρ_sol_pred, colormap = cmap, color = vec(y_test[12, :]), alpha = 1.0, rasterize = 7.5)
         push!(scs, sc)
         ln = lines!(axs[14], [1e-5, 10000], [1e-5, 10000], linewidth = 3, color = :goldenrod4)
-        sc = scatter!(axs[15], visc_M, visc_N, color = vec(y_test[12, :]), colormap = cmap, alpha = 1.0)
+        sc = scatter!(axs[15], visc_M, visc_N, color = vec(y_test[12, :]), colormap = cmap, alpha = 1.0, rasterize = 7.5)
         ln = lines!(axs[15], [1.0, 1e20], [1.0, 1e20], linewidth = 3, color = :goldenrod4)
         push!(scs, sc)
         # Create nice labels
@@ -362,7 +362,8 @@ const DatType = Float64
         if !isdir("./user/figures")
             mkpath("./user/figures")
         end
-        save("./user/figures/Figure_9_MLP_Test.png", fg1, px_per_unit = 4)
+        CairoMakie.save("./user/figures/Figure_9_MLP_Test.svg", fg1)
+        # save("./user/figures/Figure_9_MLP_Test.png", fg1, px_per_unit = 4)
     end
 
     # Error estimates
@@ -511,8 +512,10 @@ const DatType = Float64
         if !isdir("./user/figures")
             mkpath("./user/figures")
         end
-        save("./user/figures/Figure_10_MLP_errors.png", fg2, px_per_unit = 4)
-        save("./user/figures/Figure_S5_MLP_solidProps.png", fg3, px_per_unit = 4)
+        CairoMakie.save("./user/figures/Figure_10_MLP_errors.svg", fg2)
+        CairoMakie.save("./user/figures/Figure_S5_MLP_solidProps.svg", fg3)
+        # save("./user/figures/Figure_10_MLP_errors.png", fg2, px_per_unit = 4)
+        # save("./user/figures/Figure_S5_MLP_solidProps.png", fg3, px_per_unit = 4)
     end
 
     if draw_figS6
@@ -539,7 +542,8 @@ const DatType = Float64
         sc1 = scatter!(ax2, df[:,"SiO2"], df[:,"K2O"])
         sc1 = scatter!(ax3, df[:,"SiO2"], df[:,"K2O"] .+ df[:,"Na2O"])
         display(fg4)
-        save("./user/figures/Figure_S6_alkalis.png", fg4, px_per_unit = 4)
+        CairoMakie.save("./user/figures/Figure_S6_alkalis.svg", fg4)
+        # save("./user/figures/Figure_S6_alkalis.png", fg4, px_per_unit = 4)
     end
     # Return
     return nothing

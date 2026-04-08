@@ -179,7 +179,8 @@ function postprocess_comparison()
     ax3.ygridvisible = false
     display(fg1)
 
-    save("./user/figures/Figure_S7_corM_ExpVsMAGE.png", fg1, px_per_unit = 2)
+    save("./user/figures/Figure_S7_corM_ExpVsMAGE.svg", fg1)
+    # save("./user/figures/Figure_S7_corM_ExpVsMAGE.png", fg1, px_per_unit = 2)
     # Return
     return df_MAGE, out
 end
@@ -476,7 +477,8 @@ function create_composition_figure(df_MAGE :: DataFrame, liq_oxides :: Vector{St
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_4_oxide_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_4_oxide_comparison.svg", fg1)
+    # save("./user/figures/Figure_4_oxide_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -607,7 +609,8 @@ function create_MeltFractionDensity_figure(df_MAGE :: DataFrame, plt_opts :: mak
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_7_MUVi_meltfrac_dens.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_7_MUVi_meltfrac_dens.svg", fg1)
+    # save("./user/figures/Figure_7_MUVi_meltfrac_dens.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -804,7 +807,8 @@ function create_BlatterComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_6_Blatter_abundance_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_6_Blatter_abundance_comparison.svg", fg1)
+    # save("./user/figures/Figure_6_Blatter_abundance_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -914,7 +918,8 @@ function Blatter2013_temperature_vsOxide(df :: DataFrame, plt_opts :: makie_plot
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_S2b_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_S2b_Blatter_liquidline.svg", fg1)
+    # save("./user/figures/Figure_S2b_Blatter_liquidline.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -978,7 +983,8 @@ function create_experimentBiases_figure(plt_opts :: makie_plot_options)
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_1_experimental_bias.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_1_experimental_bias.svg", fg1)
+    # save("./user/figures/Figure_1_experimental_bias.png", fg1, px_per_unit = plt_opts.fig_res)
 
     # Return
     return nothing
@@ -1305,7 +1311,8 @@ function create_benchmark_figure(plt_opts :: makie_plot_options)
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_11_Benchmark_64BLAS.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_11_Benchmark_64BLAS.svg", fg1)
+    # save("./user/figures/Figure_11_Benchmark_64BLAS.png", fg1, px_per_unit = plt_opts.fig_res)
     display(fg1)
 
     # Return
@@ -1426,7 +1433,8 @@ function create_mineralComparison_figure(df :: DataFrame, plt_opts :: makie_plot
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save("./user/figures/Figure_5_mineral_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
+    CairoMakie.save("./user/figures/Figure_5_mineral_comparison.svg", fg1)
+    # save("./user/figures/Figure_5_mineral_comparison.png", fg1, px_per_unit = plt_opts.fig_res)
 end
 
 # ----------------

@@ -326,7 +326,8 @@ function TrainIgneous(;
         hidedecorations!(axs1[16])
         hidespines!(axs1[16])
         display(fg1)
-        save("./user/figures/Figure_S1b_Feature_distr_out.png", fg1, px_per_unit = 4)
+        CairoMakie.save("./user/figures/svg/Figure_S1b_Feature_distr_out.svg", fg1)
+        # save("./user/figures/Figure_S1b_Feature_distr_out.png", fg1, px_per_unit = 4)
 
         # Input features
         spl_labels = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
@@ -365,7 +366,8 @@ function TrainIgneous(;
         hidedecorations!(axs2[12])
         hidespines!(axs2[12])
         display(fg2)
-        save("./user/figures/Figure_S1a_Feature_distr_in.png", fg2, px_per_unit = 4)
+        CairoMakie.save("./user/figures/svg/Figure_S1a_Feature_distr_in.svg", fg2)
+        # save("./user/figures/Figure_S1a_Feature_distr_in.png", fg2, px_per_unit = 4)
     end
     
     # Send to device

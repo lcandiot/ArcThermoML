@@ -301,7 +301,8 @@ const DatType = Float64
     if !isdir("./user/figures")
         mkpath("./user/figures")
     end
-    save_fig ? save("./user/figures/Figure_8_MLP_crossval_results.png", f, px_per_unit = 4) : nothing
+    save_fig ? CairoMakie.save("./user/figures/Figure_8_MLP_crossval_results.svg", f) : nothing
+    # save_fig ? save("./user/figures/Figure_8_MLP_crossval_results.png", f, px_per_unit = 4) : nothing
 
     # Return
     return nothing
